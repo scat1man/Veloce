@@ -1,0 +1,24 @@
+# Render Blueprint for VELOCÉ — one free Node web service that serves the site and the API.
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    runtime: node
+    name: veloce
+    plan: free                      # 512 MB RAM, sleeps after 15 min idle, disk is NOT persistent
+    region: oregon                  # or frankfurt / singapore / ohio / virginia — pick the one nearest your clients
+    branch: main
+    # NODE_ENV=production below would make `npm ci` skip devDependencies (TypeScript, Vite),
+    # which the build needs, so ask for them explicitly.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit       # every `git push` to main redeploys
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: ADMIN_PASSWORD         # Render asks you for this when you create the Blueprint
+        sync: false
+      - key: TRUST_PROXY            # Render puts one proxy in front of the app
+        value: "1"

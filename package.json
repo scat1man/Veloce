@@ -1,0 +1,47 @@
+{
+  "name": "veloce",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "dev:client": "vite",
+    "dev:server": "node --watch --disable-warning=ExperimentalWarning server/index.js",
+    "build": "tsc -b && vite build",
+    "start": "node --disable-warning=ExperimentalWarning server/index.js",
+    "prod": "npm run build && npm start",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "test": "node --test --disable-warning=ExperimentalWarning \"server/test/*.test.js\""
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.1",
+    "@react-three/postprocessing": "^3.1.3",
+    "@tailwindcss/vite": "^4.3.3",
+    "compression": "^1.8.2",
+    "express": "^5.2.1",
+    "lenis": "^1.3.26",
+    "lucide-react": "^1.52.0",
+    "maath": "^0.10.8",
+    "motion": "^14.0.0",
+    "postprocessing": "^6.39.5",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tailwindcss": "^4.3.3",
+    "three": "^0.182.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@types/three": "^0.182.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  },
+  "engines": {
+    "node": ">=22.13 <25"
+  }
+}

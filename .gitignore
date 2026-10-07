@@ -1,0 +1,49 @@
+# --- Dependencies and build output (recreated by `npm ci` / `npm run build`) ---
+node_modules/
+dist/
+*.tsbuildinfo
+
+# --- Secrets: never commit these ---
+.env
+.env.*
+!.env.example
+
+# --- Runtime data: the SQLite database with customers' booking details ---
+server/data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# --- Original 3D source files (some are over GitHub's 100 MB limit). ---
+# The site only loads the optimised copies in public/models/web/ and the decoder in
+# public/models/draco/, which stay in Git. Keep the originals on your own computer.
+/public/models/*.glb
+/public/models/*.gltf
+/public/models/*.usdz
+!/public/models/web/
+!/public/models/draco/
+
+# --- Local backups, QA screenshots, editor and agent folders ---
+.backup-before-backend/
+qa/before/
+qa/after/
+qa/img-candidates/
+qa/*.jpg
+qa/*.jpeg
+qa/*.png
+qa/*.webp
+agent/
+.agents/
+.claude/
+skills-lock.json
+
+# --- Logs and OS / editor clutter ---
+npm-debug.log*
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

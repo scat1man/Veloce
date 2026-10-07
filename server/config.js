@@ -1,0 +1,48 @@
+// Every setting comes from environment variables, read and checked once at start.
+// In production a weak or missing admin password stops the server before it listens.
+import { fileURLToPath } from 'node:url'
+
+export const DEV_PASSWORD = 'veloce'
+const MIN_PASSWORD = 12
+
+export class ConfigError extends Error {}
+
+function parseTrustProxy(value, production) {
+  if (value === undefined || value === '') return production ? 1 : false
+  if (value === 'true') return true
+  if (value === 'false') return false
+  if (/^\d+$/.test(value)) return Number(value)
+  return value // e.g. 'loopback' or a comma-separated list of subnets, as Express accepts
+}
+
+/** Builds the config from an env-like object (process.env by default) plus explicit overrides. */
+export function loadConfig(env = process.env, overrides = {}) {
+  const production = (overrides.env ?? env.NODE_ENV) === 'production'
+  const adminPassword = overrides.adminPassword ?? env.ADMIN_PASSWORD ?? (production ? undefined : DEV_PASSWORD)
+
+  if (production) {
+    if (!adminPassword)
+      throw new ConfigError('ADMIN_PASSWORD is not set. In production, set it to a long random value (at least 12 characters).')
+    if (adminPassword === DEV_PASSWORD)
+      throw new ConfigError(`ADMIN_PASSWORD is still the demo default "${DEV_PASSWORD}". Choose a long random value (at least 12 characters).`)
+    if (adminPassword.length < MIN_PASSWORD)
+      throw new ConfigError(`ADMIN_PASSWORD is too short (${adminPassword.length} characters). Use at least ${MIN_PASSWORD}.`)
+  }
+
+  return {
+    production,
+    port: Number(overrides.port ?? env.PORT) || 3001,
+    adminPassword,
+    usingDevPassword: adminPassword === DEV_PASSWORD,
+    dataDir: overrides.dataDir ?? env.DATA_DIR ?? fileURLToPath(new URL('./data/', import.meta.url)),
+    trustProxy: overrides.trustProxy ?? parseTrustProxy(env.TRUST_PROXY, production),
+    // Redirect http -> https when the proxy says the visitor came in over plain http.
+    forceHttps: overrides.forceHttps ?? (production && env.FORCE_HTTPS !== 'false'),
+    sessionHours: Number(overrides.sessionHours ?? env.SESSION_HOURS) || 8,
+    retentionDays: Number(overrides.retentionDays ?? env.RETENTION_DAYS) || 180,
+    distDir: overrides.distDir ?? fileURLToPath(new URL('../dist/', import.meta.url)),
+    // Tests can lower or raise limits; production uses the defaults in app.js.
+    limits: overrides.limits ?? {},
+    log: overrides.log ?? ((line) => console.log(line)),
+  }
+}

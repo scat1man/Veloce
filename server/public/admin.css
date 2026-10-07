@@ -1,0 +1,32 @@
+:root { --ink:#0a0a0b; --paper:#f5f5f7; --stone:#86868b; --ash:#6e6e73; --ember:#e2592c; --line:rgba(11,11,10,.12); }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 system-ui, sans-serif; }
+header { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 32px 40px 16px; flex-wrap: wrap; }
+h1 { margin: 0; font-size: 28px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 800; }
+.meta { font: 11px ui-monospace, monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ash); }
+.bar { display: flex; align-items: baseline; gap: 24px; }
+main { padding: 0 40px 40px; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 860px; }
+th { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--ink); }
+td { padding: 12px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td small { display: block; color: var(--ash); }
+select, input { font: inherit; padding: 4px 6px; border: 1px solid rgba(11,11,10,.2); background: #fff; color: var(--ink); }
+button.link { font: 11px ui-monospace, monospace; letter-spacing: 0.14em; text-transform: uppercase; background: none; border: 0; padding: 0; color: var(--ink); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 8px; background: var(--stone); }
+.pending .dot { background: var(--ember); }
+.confirmed .dot { background: var(--ink); }
+.cancelled { color: var(--stone); }
+.empty { padding: 48px 8px; color: var(--ash); }
+#error { color: var(--ember); min-height: 1.5em; }
+
+/* Sign-in page */
+.login { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.login form { width: 100%; max-width: 360px; display: grid; gap: 20px; }
+.login h1 { font-size: 32px; }
+.login label { display: grid; gap: 8px; }
+.login input { padding: 12px 14px; border: 0; border-bottom: 1px solid var(--ink); background: transparent; font-size: 17px; }
+.login input:focus { outline: none; border-bottom-color: var(--ember); }
+.login button[type=submit] { font: 11px ui-monospace, monospace; letter-spacing: 0.14em; text-transform: uppercase; padding: 16px; border: 0; background: var(--ink); color: var(--paper); cursor: pointer; }
+.login button[disabled] { opacity: .5; cursor: wait; }
+.login .rule { height: 1px; background: var(--line); }
+@media (max-width: 640px) { header, main { padding-left: 16px; padding-right: 16px; } }
