@@ -1,33 +1,26 @@
 import { MotionConfig } from 'motion/react'
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BookingPanel } from './components/BookingPanel'
-import { BrandIntro } from './components/BrandIntro'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Navbar } from './components/Navbar'
 import { SitePanels } from './components/SitePanels'
-import { SmartImage } from './components/SmartImage'
-import { images } from './data/images'
 import { startSmoothScroll } from './hooks/smoothScroll'
 import { SiteProvider } from './hooks/useSite'
-import { Act } from './sections/act/Act'
-import { AboutSection } from './sections/AboutSection'
-import { ConciergeSection } from './sections/ConciergeSection'
-import { ExperienceSection } from './sections/ExperienceSection'
-import { ShowroomSection } from './sections/ShowroomSection'
 import { Footer } from './sections/Footer'
-import { LocationsSection } from './sections/LocationsSection'
+import { HeroReveal } from './sections/HeroReveal'
+import { MarquesSection } from './sections/MarquesSection'
+import { ShowroomSection } from './sections/ShowroomSection'
 import { hasWebGL, stageUI } from './three/store'
 
-// three.js + R3F + drei are only fetched once the page has painted.
-const Stage = lazy(() => import('./three/Stage'))
-
+/**
+ * One main page: the car reveal, the marques, the Showroom. Booking opens as
+ * a side panel from any "Book" action.
+ */
 export default function App() {
   const [webgl] = useState(() => hasWebGL())
 
   useEffect(() => {
     if (!webgl) stageUI.set({ webgl: false, ready: true })
-    // Reduced motion: no opening sequence — the page is simply there.
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) stageUI.set({ intro: 'text' })
   }, [webgl])
 
   useEffect(() => startSmoothScroll(), [])
@@ -41,26 +34,14 @@ export default function App() {
             Skip to content
           </a>
 
-          {webgl ? (
-            // If the 3D stage fails (driver fault, chunk failed to load), fall back to the photo stage.
-            <ErrorBoundary fallback={<PhotoStage />} onError={() => stageUI.set({ webgl: false, ready: true, intro: 'text' })}>
-              <Suspense fallback={null}>
-                <Stage />
-              </Suspense>
-            </ErrorBoundary>
-          ) : (
-            <PhotoStage />
-          )}
-
-          <BrandIntro />
           <Navbar />
           <main className="relative z-10">
-            <Act />
+            {/* If the 3D studio fails to load, the reveal falls back to photography. */}
+            <ErrorBoundary fallback={<HeroReveal />} onError={() => stageUI.set({ webgl: false, ready: true })}>
+              <HeroReveal />
+            </ErrorBoundary>
+            <MarquesSection />
             <ShowroomSection />
-            <ExperienceSection />
-            <LocationsSection />
-            <AboutSection />
-            <ConciergeSection />
           </main>
           <Footer />
           <BookingPanel />
@@ -68,14 +49,5 @@ export default function App() {
         </div>
       </SiteProvider>
     </MotionConfig>
-  )
-}
-
-/** No WebGL: a photographic stage keeps the act legible. */
-function PhotoStage() {
-  return (
-    <div className="fixed inset-0 z-0" aria-hidden>
-      <SmartImage image={images.gt3Sunset} priority className="h-full w-full opacity-60" />
-    </div>
   )
 }

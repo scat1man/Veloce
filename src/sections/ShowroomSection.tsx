@@ -81,7 +81,7 @@ export function ShowroomSection() {
           viewport={{ once: true, amount: 0, margin: "0px 0px -12% 0px" }}
         >
           {shown.map((v, i) => (
-            <motion.li key={v.id} layout="position" variants={fadeUp} transition={{ layout: { duration: duration.uiSlow, ease: ease.inOut } }}>
+            <motion.li key={v.id} id={`showroom-${v.id}`} layout="position" variants={fadeUp} transition={{ layout: { duration: duration.uiSlow, ease: ease.inOut } }}>
               <Card v={v} n={vehicles.indexOf(v) + 1} webgl={webgl} onOpen={() => setOpenedId(v.id)} eager={i < 3} />
             </motion.li>
           ))}

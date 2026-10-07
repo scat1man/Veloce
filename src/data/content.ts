@@ -11,10 +11,8 @@ export const brand = {
 export type NavLink = { label: string; href: string }
 
 export const navLinks: NavLink[] = [
+  { label: 'Marques', href: '#marques' },
   { label: 'Showroom', href: '#showroom' },
-  { label: 'Service', href: '#experience' },
-  { label: 'Locations', href: '#locations' },
-  { label: 'About', href: '#about' },
 ]
 
 export const footerLinks: NavLink[] = [...navLinks, { label: 'Contact', href: '#contact' }]

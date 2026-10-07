@@ -5,14 +5,14 @@ import { models, type ModelId } from './models'
  * (1 screen = 1 viewport height of scroll). DOM chapter heights and camera
  * keyframes both read from here, so copy and camera can never drift apart.
  *
- *   hero → two car chapters (the rest of the collection lives in the Showroom)
+ *   hero → one car chapter (the marques and the full collection follow below)
  *
  * Every car chapter has the same three beats, with its own choreography:
  *   brand   — the stage is dark; the manufacturer mark draws itself
  *   reveal  — lights rise, the camera walks around the car
  *   specs   — the camera settles on a technical view; the figures arrive
  */
-export const ACT_CARS: ModelId[] = ['gt3-rs', 'sf90']
+export const ACT_CARS: ModelId[] = ['gt3-rs']
 
 export const HERO_LEN = 1.4
 /** The old six-marque interlude is gone; kept at 0 so the timeline maths stays in one place. */

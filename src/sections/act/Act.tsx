@@ -7,7 +7,7 @@ import { CarChapter } from './CarChapter'
 import { HeroChapter } from './HeroChapter'
 
 /**
- * The 3D act: the hero, then a chapter for each of the two headline cars — all transparent,
+ * The 3D act: the hero, then a chapter for the headline car — all transparent,
  * scrolling over the fixed WebGL stage. Owns the scroll → stage bridge and tells
  * the renderer when to sleep.
  */
@@ -56,7 +56,7 @@ export function Act() {
         const v = vehicleById(id)!
         return <CarChapter key={v.id} v={v} i={i} />
       })}
-      {/* Gives the last chapter its final screen before the Showroom slides over it */}
+      {/* Gives the last chapter its final screen before the marques slide over it */}
       <div aria-hidden className="h-svh" />
     </div>
   )
