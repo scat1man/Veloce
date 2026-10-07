@@ -4,21 +4,26 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex, nofollow" />
-<title>VELOCÉ · Concierge sign-in</title>
-<link rel="stylesheet" href="/admin/admin.css" />
+<meta name="referrer" content="no-referrer" />
+<title>Velocé Concierge · Sign in</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" />
+<link rel="stylesheet" href="/admin/login.css" />
 <script src="/admin/login.js" defer></script>
 </head>
-<body class="login">
-<form id="login" novalidate>
-  <h1>Velocé</h1>
-  <span class="meta">Concierge · staff only</span>
-  <div class="rule"></div>
-  <label>
-    <span class="meta">Password</span>
+<body>
+<main class="card">
+  <p class="wordmark">VELOCÉ</p>
+  <h1>Concierge</h1>
+  <p class="sub">Staff sign-in. This area is not part of the public website.</p>
+  <form id="login" novalidate>
+    <label for="password">Password</label>
     <input type="password" name="password" id="password" autocomplete="current-password" required autofocus maxlength="1024" />
-  </label>
-  <p id="error" class="meta" role="alert"></p>
-  <button type="submit">Sign in</button>
-</form>
+    <p id="error" role="alert"></p>
+    <button type="submit">Sign in</button>
+  </form>
+</main>
+<p class="foot">Sessions end after a few hours. Too many wrong passwords lock sign-in for 15 minutes.</p>
 </body>
 </html>

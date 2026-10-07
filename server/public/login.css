@@ -1,0 +1,30 @@
+/* Concierge sign-in: the public site's palette — near-black stage, soft white type. */
+:root { --ink:#0a0a0b; --graphite:#111113; --carbon:#1c1c1e; --bone:#f5f5f7; --stone:#86868b; --ash:#6e6e73; --ember:#e2592c; --line:rgba(245,245,247,.1); }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  min-height: 100vh; display: grid; place-items: center; align-content: center; gap: 24px; padding: 24px;
+  background: radial-gradient(80% 60% at 50% 0%, #1a1a1d 0%, var(--ink) 70%); color: var(--bone);
+  font: 400 15px/1.5 Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif; letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+}
+.card { width: 100%; max-width: 380px; padding: 40px 32px 32px; background: rgba(17,17,19,.8); border: 1px solid var(--line); border-radius: 20px; }
+.wordmark { margin: 0 0 28px; font-weight: 600; font-size: 13px; letter-spacing: .22em; color: var(--stone); }
+h1 { margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -0.03em; }
+.sub { margin: 6px 0 28px; color: var(--stone); font-size: 14px; }
+form { display: grid; gap: 10px; }
+label { font-size: 13px; font-weight: 500; color: var(--stone); }
+input {
+  font: inherit; font-size: 16px; color: var(--bone); background: var(--carbon); border: 1px solid transparent; border-radius: 12px;
+  padding: 13px 14px; outline: none; transition: border-color .2s;
+}
+input:focus { border-color: rgba(245,245,247,.35); }
+#error { margin: 0; min-height: 1.4em; font-size: 13px; color: var(--ember); }
+button {
+  font: inherit; font-weight: 500; height: 48px; border: 0; border-radius: 999px; background: var(--bone); color: var(--ink);
+  cursor: pointer; transition: opacity .2s, transform .2s;
+}
+button:hover { opacity: .9; }
+button:active { transform: scale(.99); }
+button[disabled] { opacity: .5; cursor: wait; }
+.foot { margin: 0; max-width: 380px; text-align: center; font-size: 12px; color: var(--ash); }

@@ -6,12 +6,18 @@ const button = form.querySelector('button')
 form.addEventListener('submit', async (e) => {
   e.preventDefault()
   error.textContent = ''
+  const password = document.getElementById('password').value
+  if (!password) {
+    error.textContent = 'Enter the password.'
+    return
+  }
   button.disabled = true
+  button.textContent = 'Signing in…'
   try {
     const res = await fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: document.getElementById('password').value }),
+      body: JSON.stringify({ password }),
     })
     if (res.ok) return location.replace('/admin')
     error.textContent = (await res.json().catch(() => ({}))).error ?? `Sign-in failed (${res.status}).`
@@ -19,5 +25,6 @@ form.addEventListener('submit', async (e) => {
     error.textContent = 'Could not reach the server.'
   } finally {
     button.disabled = false
+    button.textContent = 'Sign in'
   }
 })

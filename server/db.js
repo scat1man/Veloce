@@ -33,6 +33,11 @@ export function openDb(dataDir) {
       created_at  INTEGER NOT NULL
     );
   `)
+  // Columns added after the first release: add them to older databases on start.
+  const columns = new Set(db.prepare('PRAGMA table_info(bookings)').all().map((c) => c.name))
+  if (!columns.has('note')) db.exec("ALTER TABLE bookings ADD COLUMN note TEXT NOT NULL DEFAULT ''") // staff-only
+  if (!columns.has('updated_at')) db.exec('ALTER TABLE bookings ADD COLUMN updated_at TEXT')
+
   // Older databases may hold mixed-case emails; lookups compare lowercase.
   db.exec('UPDATE bookings SET email = lower(email) WHERE email != lower(email)')
   return db

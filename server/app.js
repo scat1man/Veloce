@@ -109,7 +109,8 @@ export function createApp(options = {}) {
     // two people can submit the same car and dates at the same moment.
     if (input.vehicleId && !bookings.isAvailable(input.vehicleId, input.pickup, input.returnDate))
       return res.status(409).json({ error: 'That car is already booked for those dates. Try other dates or let us advise.' })
-    res.status(201).json(bookings.createBooking(input))
+    const { note: _note, updatedAt: _updatedAt, ...created } = bookings.createBooking(input)
+    res.status(201).json(created)
   })
 
   // Status lookup needs both the reference and the email on the booking, so references
@@ -140,10 +141,21 @@ export function createApp(options = {}) {
     next()
   }
 
+  // ---- The console: a separate site for staff only, never linked from the public pages ----
+  // Search engines are told to stay out, and nothing under /admin is cached by the browser or a proxy.
+  app.use('/admin', (_req, res, next) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive')
+    next()
+  })
   app.get('/admin', (req, res) => (loggedIn(req) ? res.sendFile(here('./admin.html')) : res.redirect(303, '/admin/login')))
   app.get('/admin/login', (req, res) => (loggedIn(req) ? res.redirect(303, '/admin') : res.sendFile(here('./login.html'))))
-  // The admin pages' CSS and JS: no secrets in them, so no sign-in needed to load them.
-  app.use('/admin', express.static(here('./public/'), { index: false, maxAge: 0 }))
+  // The sign-in page's own CSS and JS are the only admin files anyone may load.
+  for (const file of ['login.css', 'login.js']) app.get(`/admin/${file}`, (_req, res) => res.sendFile(here(`./public/${file}`)))
+  // The console's code is served only inside a valid session: visitors get a plain 404,
+  // so they cannot even read how the console works.
+  app.use('/admin/console', (req, res, next) => (loggedIn(req) ? next() : res.status(404).type('text').send('Not found.')))
+  app.use('/admin/console', express.static(here('./console/'), { index: false, maxAge: 0, fallthrough: false }))
+  app.use('/admin', (_req, res) => res.status(404).type('text').send('Not found.'))
 
   app.post('/api/admin/login', guardWrite, (req, res) => {
     const ip = req.ip ?? 'unknown'
@@ -170,16 +182,63 @@ export function createApp(options = {}) {
     res.json({ ok: true })
   })
 
-  app.get('/api/admin/session', (req, res) => res.json({ authenticated: loggedIn(req) }))
+  app.get('/api/admin/session', (req, res) => {
+    const expiresAt = sessions.expiresAt(sessionId(req))
+    res.json(
+      expiresAt
+        ? { authenticated: true, expiresAt: new Date(expiresAt).toISOString(), demoPassword: config.usingDevPassword, vehicles, cities }
+        : { authenticated: false },
+    )
+  })
   app.get('/api/admin/bookings', requireAdmin, (_req, res) => res.json(bookings.listBookings()))
+
+  // Spreadsheet export. Cells that start like a formula are prefixed so Excel shows them as text.
+  app.get('/api/admin/bookings.csv', requireAdmin, (req, res) => {
+    const cols = [
+      ['Reference', 'reference'], ['Status', 'status'], ['Guest', 'name'], ['Email', 'email'], ['Car', 'vehicle'],
+      ['City', 'city'], ['Pick-up', 'pickup'], ['Return', 'returnDate'], ['Received (UTC)', 'createdAt'], ['Note', 'note'],
+    ]
+    const cell = (v) => {
+      let text = String(v ?? '')
+      if (/^[=+\-@\t\r]/.test(text)) text = "'" + text
+      return `"${text.replace(/"/g, '""')}"`
+    }
+    const lines = [cols.map(([h]) => cell(h)).join(','), ...bookings.listBookings().map((b) => cols.map(([, k]) => cell(b[k])).join(','))]
+    audit('admin.export', { ip: req.ip, rows: lines.length - 1 })
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+    res.setHeader('Content-Disposition', `attachment; filename="veloce-bookings-${new Date().toISOString().slice(0, 10)}.csv"`)
+    res.send('\ufeff' + lines.join('\r\n'))
+  })
+
+  // Change the status and/or the staff note of one booking.
   app.patch('/api/admin/bookings/:reference', requireAdmin, guardWrite, (req, res) => {
-    const reference = req.params.reference
-    const status = req.body?.status
+    const reference = req.params.reference.toUpperCase()
+    const body = req.body ?? {}
     if (reference.length > LIMITS.reference) return res.status(404).json({ error: 'Booking not found.' })
-    const result = bookings.updateStatus(reference.toUpperCase(), status)
-    if (result.error) return res.status(result.invalid ? 400 : result.notFound ? 404 : 409).json({ error: result.error })
-    audit('admin.status_change', { ip: req.ip, reference: result.booking.reference, from: result.previous, to: status })
-    res.json(result.booking)
+    if (body.status === undefined && body.note === undefined) return res.status(400).json({ error: 'Nothing to change.' })
+    const fail = (result) => res.status(result.invalid ? 400 : result.notFound ? 404 : 409).json({ error: result.error })
+    let booking
+    if (body.status !== undefined) {
+      const result = bookings.updateStatus(reference, body.status)
+      if (result.error) return fail(result)
+      if (result.previous !== body.status) audit('admin.status_change', { ip: req.ip, reference, from: result.previous, to: body.status })
+      booking = result.booking
+    }
+    if (body.note !== undefined) {
+      const result = bookings.updateNote(reference, body.note)
+      if (result.error) return fail(result)
+      audit('admin.note_saved', { ip: req.ip, reference })
+      booking = result.booking
+    }
+    res.json(booking)
+  })
+
+  // Erase a booking and the guest's personal details.
+  app.delete('/api/admin/bookings/:reference', requireAdmin, guardWrite, (req, res) => {
+    const reference = req.params.reference.toUpperCase()
+    if (reference.length > LIMITS.reference || !bookings.deleteBooking(reference)) return res.status(404).json({ error: 'Booking not found.' })
+    audit('admin.booking_deleted', { ip: req.ip, reference })
+    res.json({ ok: true })
   })
 
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found.' }))

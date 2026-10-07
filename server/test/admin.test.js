@@ -69,7 +69,79 @@ describe('admin', () => {
     assert.ok(Array.isArray(await list.json()))
     const page = await fetch(`${srv.base}/admin`, { headers: { Cookie: cookie }, redirect: 'manual' })
     assert.equal(page.status, 200)
-    assert.match(await page.text(), /\/admin\/admin\.js/)
+    assert.match(await page.text(), /\/admin\/console\/console\.js/)
+  })
+
+  test('the console page and its code are only served inside a session', async () => {
+    for (const path of ['/admin/console/console.js', '/admin/console/console.css', '/admin/admin.js', '/admin/anything']) {
+      const anon = await fetch(`${srv.base}${path}`)
+      assert.equal(anon.status, 404, path)
+      assert.doesNotMatch(await anon.text(), /bookings/i, path)
+    }
+    const js = await fetch(`${srv.base}/admin/console/console.js`, { headers: { Cookie: cookie } })
+    assert.equal(js.status, 200)
+    assert.match(js.headers.get('content-type'), /javascript/)
+    // The sign-in page's own files stay public.
+    assert.equal((await fetch(`${srv.base}/admin/login.js`)).status, 200)
+    assert.equal((await fetch(`${srv.base}/admin/login.css`)).status, 200)
+    // Search engines are told to keep out of every admin page.
+    assert.match((await fetch(`${srv.base}/admin/login`)).headers.get('x-robots-tag'), /noindex/)
+  })
+
+  test('session endpoint reports expiry and the catalogue only when signed in', async () => {
+    assert.deepEqual(await (await fetch(`${srv.base}/api/admin/session`)).json(), { authenticated: false })
+    const me = await (await fetch(`${srv.base}/api/admin/session`, { headers: { Cookie: cookie } })).json()
+    assert.equal(me.authenticated, true)
+    assert.ok(Date.parse(me.expiresAt) > Date.now())
+    assert.equal(me.vehicles.sf90, 'Ferrari SF90 Stradale')
+  })
+
+  test('staff notes: saved, length-checked, and never shown to guests', async () => {
+    const created = await (await postJson(`${srv.base}/api/bookings`, booking({ vehicleId: 'db12' }))).json()
+    assert.equal(created.note, undefined)
+    const patch = (body) =>
+      fetch(`${srv.base}/api/admin/bookings/${created.reference}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: cookie, Origin: origin },
+        body: JSON.stringify(body),
+      })
+    const saved = await patch({ note: 'Called guest.\nDeliver to hotel.' })
+    assert.equal(saved.status, 200)
+    const body = await saved.json()
+    assert.equal(body.note, 'Called guest.\nDeliver to hotel.')
+    assert.ok(body.updatedAt)
+    assert.equal((await patch({ note: 'x'.repeat(2001) })).status, 400)
+    assert.equal((await patch({ note: 'bad \u0000 byte' })).status, 400)
+    assert.equal((await patch({ note: 42 })).status, 400)
+    assert.equal((await patch({})).status, 400)
+    const lookup = await (await postJson(`${srv.base}/api/bookings/lookup`, { reference: created.reference, email: 'ada@example.com' })).json()
+    assert.equal(lookup.note, undefined)
+  })
+
+  test('CSV export needs a session and neutralises spreadsheet formulas', async () => {
+    assert.equal((await fetch(`${srv.base}/api/admin/bookings.csv`)).status, 401)
+    await postJson(`${srv.base}/api/bookings`, booking({ vehicleId: '750s', name: '=HYPERLINK("http://evil")' }))
+    const res = await fetch(`${srv.base}/api/admin/bookings.csv`, { headers: { Cookie: cookie } })
+    assert.equal(res.status, 200)
+    assert.match(res.headers.get('content-type'), /text\/csv/)
+    assert.match(res.headers.get('content-disposition'), /attachment; filename="veloce-bookings-/)
+    const csv = await res.text()
+    assert.match(csv, /"Reference","Status"/)
+    assert.match(csv, /"'=HYPERLINK\(""http:\/\/evil""\)"/)
+    assert.ok(srv.logs.some((l) => l.includes('admin.export')))
+  })
+
+  test('delete removes a booking for good, needs a session and a same-site request', async () => {
+    const created = await (await postJson(`${srv.base}/api/bookings`, booking({ vehicleId: 'revuelto' }))).json()
+    const url = `${srv.base}/api/admin/bookings/${created.reference}`
+    const del = (headers) => fetch(url, { method: 'DELETE', headers: { 'Content-Type': 'application/json', ...headers }, body: '{}' })
+    assert.equal((await del({ Origin: origin })).status, 401)
+    assert.equal((await del({ Cookie: cookie, Origin: 'https://evil.example' })).status, 403)
+    assert.equal((await del({ Cookie: cookie, Origin: origin })).status, 200)
+    assert.equal((await del({ Cookie: cookie, Origin: origin })).status, 404)
+    const list = await (await fetch(`${srv.base}/api/admin/bookings`, { headers: { Cookie: cookie } })).json()
+    assert.ok(!list.some((b) => b.reference === created.reference))
+    assert.ok(srv.logs.some((l) => l.includes('admin.booking_deleted')))
   })
 
   test('a made-up session cookie is not accepted', async () => {

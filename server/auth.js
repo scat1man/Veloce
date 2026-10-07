@@ -34,6 +34,11 @@ export function createSessionStore(db, { hours }) {
       const row = find.get(key(id))
       return Boolean(row && row.expires_at > Date.now())
     },
+    /** Unix ms when this session ends, or null. */
+    expiresAt(id) {
+      if (!this.valid(id)) return null
+      return find.get(key(id)).expires_at
+    },
     destroy(id) {
       if (typeof id === 'string') remove.run(key(id))
     },

@@ -10,7 +10,7 @@ const REF_LENGTH = 8
 const MAX_DAYS = 60
 const MAX_AHEAD_DAYS = 730
 export const STATUSES = ['pending', 'confirmed', 'cancelled']
-export const LIMITS = { name: 120, email: 200, reference: 32 }
+export const LIMITS = { name: 120, email: 200, reference: 32, note: 2000 }
 
 const dayDiff = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5)
 const todayUtc = () => new Date().toISOString().slice(0, 10)
@@ -19,6 +19,8 @@ const isString = (v) => typeof v === 'string'
 const isRealDate = (v) => isString(v) && DATE.test(v) && !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().startsWith(v)
 // eslint-disable-next-line no-control-regex
 const CONTROL = /[\u0000-\u001f\u007f]/
+// eslint-disable-next-line no-control-regex
+const NOTE_CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/
 
 /** Returns an error message, or null when the request is acceptable. Only plain strings are accepted. */
 export function validate(input) {
@@ -66,7 +68,9 @@ export function createBookingStore(db) {
   const byReference = db.prepare('SELECT * FROM bookings WHERE reference = ?')
   const byReferenceAndEmail = db.prepare('SELECT * FROM bookings WHERE reference = ? AND email = ?')
   const all = db.prepare('SELECT * FROM bookings ORDER BY created_at DESC, id DESC LIMIT 1000')
-  const setStatus = db.prepare('UPDATE bookings SET status = ? WHERE reference = ?')
+  const setStatus = db.prepare("UPDATE bookings SET status = ?, updated_at = datetime('now') WHERE reference = ?")
+  const setNote = db.prepare("UPDATE bookings SET note = ?, updated_at = datetime('now') WHERE reference = ?")
+  const remove = db.prepare('DELETE FROM bookings WHERE reference = ?')
   const purgeOld = db.prepare("DELETE FROM bookings WHERE return_date < date('now', ?)")
 
   const isAvailable = (vehicleId, pickup, returnDate) => !overlapping.get(vehicleId, returnDate, pickup)
@@ -107,6 +111,20 @@ export function createBookingStore(db) {
       return { booking: findBooking(reference), previous: booking.status }
     },
 
+    /** Staff note on a booking. Newlines and tabs are fine; other control characters are not. */
+    updateNote(reference, note) {
+      if (typeof note !== 'string' || note.length > LIMITS.note || NOTE_CONTROL.test(note))
+        return { error: `Notes are plain text, up to ${LIMITS.note} characters.`, invalid: true }
+      if (!findBooking(reference)) return { error: 'Booking not found.', notFound: true }
+      setNote.run(note.trim(), reference)
+      return { booking: findBooking(reference) }
+    },
+
+    /** Removes a booking and the guest's details for good (e.g. a guest asks to be forgotten). */
+    deleteBooking(reference) {
+      return Number(remove.run(reference).changes) > 0
+    },
+
     /** Deletes bookings whose car came back more than `days` days ago. Returns how many. */
     purge(days) {
       return Number(purgeOld.run(`-${Math.floor(days)} days`).changes)
@@ -128,6 +146,8 @@ function toJson(row) {
     name: row.name,
     email: row.email,
     status: row.status,
+    note: row.note ?? '',
     createdAt: row.created_at,
+    updatedAt: row.updated_at ?? null,
   }
 }
