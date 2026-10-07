@@ -42,3 +42,13 @@ test('the real entry point exits with a clear message on a weak production passw
     rmSync(dataDir, { recursive: true, force: true })
   }
 })
+
+test('ADMIN_PASSWORD is trimmed, so a pasted trailing space or newline does not lock staff out', async () => {
+  const { passwordMatches } = await import('../auth.js')
+  const config = loadConfig({ NODE_ENV: 'production', ADMIN_PASSWORD: '  long-enough-secret\n' })
+  assert.equal(config.adminPassword, 'long-enough-secret')
+  assert.ok(passwordMatches('long-enough-secret', config.adminPassword))
+  assert.ok(passwordMatches(' long-enough-secret ', config.adminPassword))
+  assert.ok(!passwordMatches('   ', config.adminPassword))
+  assert.throws(() => loadConfig({ NODE_ENV: 'production', ADMIN_PASSWORD: '   ' }), ConfigError)
+})

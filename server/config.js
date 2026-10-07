@@ -18,7 +18,9 @@ function parseTrustProxy(value, production) {
 /** Builds the config from an env-like object (process.env by default) plus explicit overrides. */
 export function loadConfig(env = process.env, overrides = {}) {
   const production = (overrides.env ?? env.NODE_ENV) === 'production'
-  const adminPassword = overrides.adminPassword ?? env.ADMIN_PASSWORD ?? (production ? undefined : DEV_PASSWORD)
+  // Trimmed: a space or line break pasted into the host's settings page is invisible there,
+  // and would otherwise make the right password fail.
+  const adminPassword = (overrides.adminPassword ?? env.ADMIN_PASSWORD)?.trim() || (production ? undefined : DEV_PASSWORD)
 
   if (production) {
     if (!adminPassword)

@@ -8,8 +8,12 @@ const sha256 = (value) => createHash('sha256').update(value).digest()
 
 /** Constant-time comparison: hashing first makes both sides the same length. */
 export function passwordMatches(candidate, expected) {
-  if (typeof candidate !== 'string' || candidate.length === 0 || candidate.length > 1024) return false
-  return timingSafeEqual(sha256(candidate), sha256(expected))
+  if (typeof candidate !== 'string' || candidate.length > 1024) return false
+  // Leading/trailing spaces are ignored on both sides (config.js trims ADMIN_PASSWORD too),
+  // so a copy-pasted password with a stray space still works.
+  const typed = candidate.trim()
+  if (typed.length === 0) return false
+  return timingSafeEqual(sha256(typed), sha256(expected))
 }
 
 export function createSessionStore(db, { hours }) {
