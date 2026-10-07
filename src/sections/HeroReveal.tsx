@@ -18,7 +18,7 @@ const VehicleViewer = lazy(() => import('../three/VehicleViewer'))
 const HERO_ID = 'gt3-rs'
 const SESSION_KEY = 'veloce:reveal-seen'
 /** The whole reveal, start to curtain-up (ms). Never waits on the network. */
-const INTRO_MS = 3200
+const INTRO_MS = 5000
 
 const seen = () => {
   try {
@@ -30,7 +30,7 @@ const seen = () => {
 
 /**
  * The home page's first screen. On a visitor's first view of the session a
- * three-second reveal plays over it (see Intro), then the curtain lifts on
+ * five-second reveal plays over it (see Intro), then the curtain lifts on
  * the car in the studio with the headline beside it. Nothing waits for a
  * click; the reveal can still be skipped.
  */
@@ -73,7 +73,7 @@ export function HeroReveal() {
             <VehicleViewer
               modelId={v.model3d}
               holdDark={intro}
-              framing={desktop ? { distance: 1.45, lookY: 1.7 } : { distance: 1.3, lookY: 0.45 }}
+              framing={desktop ? { distance: 1.45, lookY: 1.7, spin: 0.2 } : { distance: 1.3, lookY: 0.45, spin: 0.2 }}
               className="absolute inset-0"
               renderFallback={() => <SmartImage image={v.image} priority sizes="100vw" className="h-full w-full" />}
             />
@@ -93,7 +93,7 @@ export function HeroReveal() {
         className="gutter absolute inset-x-0 bottom-0 z-20 pb-10 lg:bottom-auto lg:top-[17svh] lg:pb-0"
         initial={reduce ? false : { opacity: 0, y: 24 }}
         animate={intro ? { opacity: 0, y: 24 } : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: ease.out, delay: intro ? 0 : 0.35 }}
+        transition={{ duration: 1.1, ease: ease.out, delay: intro ? 0 : 0.5 }}
       >
         <p className="eyebrow text-stone">
           Performance car rental<span className="hidden sm:inline"> <span aria-hidden className="mx-2 text-bone/30">/</span> Five U.S. cities</span>
@@ -122,7 +122,7 @@ export function HeroReveal() {
         className="gutter absolute inset-x-0 bottom-0 z-20 hidden pb-9 md:grid md:grid-cols-4 lg:grid-cols-[repeat(4,minmax(0,12rem))_1fr]"
         initial={reduce ? false : { opacity: 0 }}
         animate={{ opacity: intro ? 0 : 1 }}
-        transition={{ duration: 0.8, delay: intro ? 0 : 0.6 }}
+        transition={{ duration: 1.1, delay: intro ? 0 : 0.8 }}
       >
         {specs.map(([k, val]) => (
           <div key={k} className="border-t border-bone/20 pr-6 pt-3">
@@ -138,18 +138,18 @@ export function HeroReveal() {
 }
 
 /**
- * Three seconds of suspense, then the site:
+ * Five seconds of suspense, then the site:
  *
  *   0.0s  black; a hairline of light draws across the middle
  *   0.7s  the line opens into a letterbox — the car's silhouette at sunset
- *   1.9s  the letterbox opens to full frame; the house name, VELOCÉ, arrives
- *   2.6s  the curtain lifts on the home page
+ *   2.6s  the letterbox opens to full frame; the house name, VELOCÉ, arrives
+ *   4.1s  the curtain lifts on the home page
  *
  * Plays without input, never waits for loading, and any click or key skips it.
  */
 function Intro({ onDone }: { onDone: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onDone, INTRO_MS - 600)
+    const t = setTimeout(onDone, INTRO_MS - 900)
     window.addEventListener('pointerdown', onDone)
     window.addEventListener('keydown', onDone)
     return () => {
@@ -162,7 +162,7 @@ function Intro({ onDone }: { onDone: () => void }) {
   return (
     <motion.div
       className="fixed inset-0 z-[80] overflow-hidden bg-black"
-      exit={{ y: '-100%', transition: { duration: 0.75, ease: [0.76, 0, 0.24, 1] } }}
+      exit={{ y: '-100%', transition: { duration: 0.9, ease: [0.76, 0, 0.24, 1] } }}
       role="presentation"
     >
       {/* The photograph, behind a letterbox that opens */}
@@ -170,9 +170,9 @@ function Intro({ onDone }: { onDone: () => void }) {
         className="absolute inset-0"
         initial={{ clipPath: 'inset(50% 0 50% 0)' }}
         animate={{ clipPath: ['inset(50% 0 50% 0)', 'inset(50% 0 50% 0)', 'inset(36% 0 36% 0)', 'inset(36% 0 36% 0)', 'inset(0% 0 0% 0)'] }}
-        transition={{ duration: 2.4, times: [0, 0.2, 0.42, 0.72, 1], ease: [0.65, 0, 0.35, 1] }}
+        transition={{ duration: 3.6, times: [0, 0.2, 0.42, 0.72, 1], ease: [0.45, 0, 0.25, 1] }}
       >
-        <motion.div className="absolute inset-0" initial={{ scale: 1.18 }} animate={{ scale: 1.04 }} transition={{ duration: 3.2, ease: ease.out }}>
+        <motion.div className="absolute inset-0" initial={{ scale: 1.18 }} animate={{ scale: 1.04 }} transition={{ duration: 5, ease: ease.out }}>
           <SmartImage image={images.gt3Sunset} priority sizes="100vw" className="h-full w-full" />
         </motion.div>
         <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.55))]" />
@@ -185,7 +185,7 @@ function Intro({ onDone }: { onDone: () => void }) {
         style={{ boxShadow: '0 0 18px 2px rgba(255,236,200,0.65)' }}
         initial={{ scaleX: 0, opacity: 1 }}
         animate={{ scaleX: [0, 1, 1], opacity: [1, 1, 0] }}
-        transition={{ duration: 1.0, times: [0, 0.65, 1], ease: [0.65, 0, 0.35, 1] }}
+        transition={{ duration: 1.5, times: [0, 0.65, 1], ease: [0.45, 0, 0.25, 1] }}
       />
 
       {/* The house name */}
@@ -194,7 +194,7 @@ function Intro({ onDone }: { onDone: () => void }) {
           className="font-wordmark pl-[0.3em] text-[clamp(2.5rem,8vw,6rem)] leading-none"
           initial={{ opacity: 0, y: 16, letterSpacing: '0.6em' }}
           animate={{ opacity: 1, y: 0, letterSpacing: '0.3em' }}
-          transition={{ duration: 1.1, delay: 1.5, ease: ease.out }}
+          transition={{ duration: 1.5, delay: 2.3, ease: ease.out }}
         >
           {brand.name}
         </motion.p>
@@ -202,7 +202,7 @@ function Intro({ onDone }: { onDone: () => void }) {
           className="eyebrow mt-4 text-bone/70"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 1.9, ease: ease.out }}
+          transition={{ duration: 0.9, delay: 2.9, ease: ease.out }}
         >
           Supercar rental
         </motion.p>

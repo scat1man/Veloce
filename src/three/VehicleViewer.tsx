@@ -29,8 +29,11 @@ export type ViewerProps = {
   children?: ReactNode
   /** Called once the first car has loaded and can be lit. */
   onReady?: () => void
-  /** Preview framing: `distance` scales how far the camera sits; `lookY` raises the aim (the car sits lower). */
-  framing?: { distance?: number; lookY?: number }
+  /**
+   * Preview framing: `distance` scales how far the camera sits; `lookY` raises the aim (the car sits lower);
+   * `spin` turns the camera continuously around the car (radians per second) instead of swaying.
+   */
+  framing?: { distance?: number; lookY?: number; spin?: number }
 }
 
 const TARGET = new THREE.Vector3(0, 0.85, 0)
@@ -214,7 +217,7 @@ function ViewerScene({
         </Suspense>
         </group>
       </ModelBoundary>
-      {mode === 'interactive' ? <OrbitRig /> : <DriftRig reduce={reduce} distance={framing?.distance ?? 1} lookY={framing?.lookY ?? TARGET.y} />}
+      {mode === 'interactive' ? <OrbitRig reduce={reduce} /> : <DriftRig reduce={reduce} distance={framing?.distance ?? 1} lookY={framing?.lookY ?? TARGET.y} spin={framing?.spin ?? 0} />}
     </>
   )
 }
@@ -224,19 +227,19 @@ function Mark({ onMount }: { onMount: () => void }) {
   return null
 }
 
-/** Preview camera: a slow orbital drift (camera moves, car stays put) + pointer parallax. */
-function DriftRig({ reduce, distance, lookY }: { reduce: boolean; distance: number; lookY: number }) {
+/** Preview camera: a slow orbital drift, or a continuous turn when `spin` is set (camera moves, car stays put) + pointer parallax. */
+function DriftRig({ reduce, distance, lookY, spin }: { reduce: boolean; distance: number; lookY: number; spin: number }) {
   const { camera, pointer, size } = useThree()
   const t0 = useRef(0)
   const p = useRef(new THREE.Vector3())
   const aim = useRef(new THREE.Vector3())
   useFrame((_, dt) => {
     dt = Math.min(dt, 1 / 20)
-    // A slow sway around the front three-quarter — never a continuous spin.
+    // A slow sway around the front three-quarter, or a steady turn all the way round.
     if (!reduce) t0.current += dt
     // Fit the car's three-quarter silhouette (~4.8 m) to the frame width, whatever its shape.
     const dist = THREE.MathUtils.clamp(12 / (size.width / size.height), 8.2, 16) * distance
-    const a = 0.72 + (reduce ? 0 : Math.sin(t0.current * 0.11) * 0.1 + pointer.x * 0.14)
+    const a = 0.72 + (reduce ? 0 : (spin ? t0.current * spin : Math.sin(t0.current * 0.11) * 0.1) + pointer.x * 0.14)
     const h = 1.55 + (reduce ? 0 : pointer.y * 0.25)
     p.current.set(Math.sin(a) * dist, h, Math.cos(a) * dist)
     if (reduce) camera.position.copy(p.current)
@@ -246,9 +249,12 @@ function DriftRig({ reduce, distance, lookY }: { reduce: boolean; distance: numb
   return null
 }
 
-/** Interactive camera: damped orbit, zoom, a slow idle turn until the visitor takes over. */
-function OrbitRig() {
+/** Interactive camera: damped orbit, zoom, and a slow turn that pauses while the visitor drags and resumes after. */
+function OrbitRig({ reduce }: { reduce: boolean }) {
   const ref = useRef<OrbitControlsImpl>(null)
+  const [turning, setTurning] = useState(true)
+  const resume = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(resume.current), [])
   const { camera, size, gl } = useThree()
   useWheelOrbit(ref, useCallback(() => gl.domElement, [gl]))
   const aspect = size.width / size.height
@@ -272,6 +278,15 @@ function OrbitRig() {
       maxDistance={Math.max(13, dist + 1)}
       minPolarAngle={0.35}
       maxPolarAngle={Math.PI / 2 - 0.06}
+      autoRotate={turning && !reduce}
+      autoRotateSpeed={1.2}
+      onStart={() => {
+        clearTimeout(resume.current)
+        setTurning(false)
+      }}
+      onEnd={() => {
+        resume.current = setTimeout(() => setTurning(true), 2500)
+      }}
     />
   )
 }
