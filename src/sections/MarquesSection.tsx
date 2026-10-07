@@ -3,34 +3,30 @@ import { RevealText } from '../animations/RevealText'
 import { viewport } from '../animations/tokens'
 import { fadeUp, stagger } from '../animations/variants'
 import { BrandLogo } from '../components/BrandLogo'
-import { SectionLabel } from '../components/SectionLabel'
 import { brands } from '../data/brands'
 import { vehicles } from '../data/vehicles'
 import { scrollToHash } from '../hooks/scrollTo'
 
 /**
- * The marques — after the single headline car, every maker we keep, set in a
- * row like the brand wall in a dealership. Each mark leads to its car in the
- * Showroom.
+ * The marques — the badges of every maker we keep, set loose in one quiet row
+ * like the brand wall behind a dealer's front desk. A badge brightens on hover
+ * and names its home town; choosing it leads to that car in the Showroom.
  */
 export function MarquesSection() {
   return (
     <section id="marques" data-nav-theme="dark" aria-labelledby="marques-title" className="relative bg-ink text-bone">
-      <div className="gutter pb-24 pt-24 md:pb-32 md:pt-32">
-        <div className="grid-12 items-end gap-y-6">
-          <div className="col-span-12 lg:col-span-7">
-            <SectionLabel label="The marques" />
-            <RevealText as="h2" id="marques-title" className="font-display text-display mt-4" lines={['Six marques.', { content: 'One collection.', className: 'text-stone' }]} />
-          </div>
-          <p className="col-span-12 font-text text-[1rem] leading-[1.6] text-stone lg:col-span-4 lg:col-start-9">
-            One car from each of six makers, chosen and kept to factory specification. Select a marque to see its car in the Showroom.
+      <div className="gutter pb-28 pt-28 md:pb-40 md:pt-36">
+        <div className="mx-auto max-w-[46rem] text-center">
+          <RevealText as="h2" id="marques-title" className="font-display text-display" lines={['From Stuttgart to Woking.']} />
+          <p className="text-lede mx-auto mt-6 max-w-[36rem] text-stone">
+            Porsche, Ferrari, Lamborghini, McLaren, Aston Martin and Mercedes-AMG. One car from each, kept to factory specification.
           </p>
         </div>
 
         <motion.ul
-          className="mt-14 grid grid-cols-2 border-l border-t border-bone/10 md:mt-20 md:grid-cols-3 lg:grid-cols-6"
+          className="mx-auto mt-20 grid max-w-[72rem] grid-cols-3 gap-x-6 gap-y-14 md:mt-28 lg:grid-cols-6"
           aria-label="Marques"
-          variants={stagger(0.06)}
+          variants={stagger(0.08)}
           initial="hidden"
           whileInView="show"
           viewport={viewport}
@@ -38,24 +34,18 @@ export function MarquesSection() {
           {vehicles.map((v) => {
             const b = brands[v.manufacturer]
             return (
-              <motion.li key={v.id} variants={fadeUp} className="border-b border-r border-bone/10">
+              <motion.li key={v.id} variants={fadeUp}>
                 <button
                   type="button"
                   onClick={() => scrollToHash(`#showroom-${v.id}`, { offset: -110 })}
                   aria-label={`${v.manufacturer}: see the ${v.name} in the Showroom`}
-                  className="group flex h-full w-full flex-col items-center justify-between gap-8 px-4 pb-6 pt-10 text-center transition-colors duration-300 hover:bg-bone/[0.04] focus-visible:bg-bone/[0.04] md:pt-12"
+                  className="group flex w-full flex-col items-center gap-5 text-center"
                 >
-                  <span className="flex h-16 items-center opacity-70 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
-                    <BrandLogo manufacturer={v.manufacturer} size="clamp(2.25rem, 3vw, 2.9rem)" maxWidth="8.5rem" />
+                  <span className="flex h-16 w-full items-center justify-center opacity-55 transition-[opacity,transform] duration-500 ease-[var(--ease-out-expo)] group-hover:-translate-y-1 group-hover:opacity-100 group-focus-visible:opacity-100">
+                    <BrandLogo manufacturer={v.manufacturer} size="clamp(2.25rem, 3.4vw, 3.25rem)" maxWidth="min(9rem, 100%)" />
                   </span>
-                  <span>
-                    <span className="eyebrow block text-bone/85">{v.manufacturer}</span>
-                    {b && (
-                      <span className="meta mt-1.5 block text-stone">
-                        <span className="block">{b.origin}</span>
-                        <span className="block text-bone/35">Est. {b.founded}</span>
-                      </span>
-                    )}
+                  <span className="meta text-stone opacity-100 transition-opacity duration-500 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-visible:opacity-100">
+                    {b ? b.origin.split(',')[0] : v.manufacturer}
                   </span>
                 </button>
               </motion.li>

@@ -3,7 +3,6 @@ import { useRef } from 'react'
 import { RevealText } from '../animations/RevealText'
 import { viewport } from '../animations/tokens'
 import { fadeUp, maskLine, stagger } from '../animations/variants'
-import { SectionLabel } from '../components/SectionLabel'
 import { SmartImage } from '../components/SmartImage'
 import { experienceSteps, type ExperienceStep } from '../data/content'
 import { images } from '../data/images'
@@ -17,13 +16,12 @@ import { images } from '../data/images'
  */
 export function ExperienceSection() {
   return (
-    <section id="experience" data-nav-theme="light" aria-labelledby="experience-title" className="border-t border-rule bg-paper text-ink">
+    <section id="experience" data-nav-theme="light" aria-labelledby="experience-title" className="bg-paper text-ink">
       <Cinema />
 
       <div className="gutter grid-12 gap-y-6 pt-24 md:pt-32">
         <div className="col-span-12 lg:col-span-7">
-          <SectionLabel label="Service" tone="onLight" />
-          <RevealText as="h2" id="experience-title" className="font-display text-display mt-4" lines={['How a rental works.']} />
+          <RevealText as="h2" id="experience-title" className="font-display text-display" lines={['How a rental works.']} />
         </div>
       </div>
 

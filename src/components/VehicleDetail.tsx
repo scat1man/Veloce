@@ -110,8 +110,8 @@ export function VehicleDetail({ openedId, onClose }: Props) {
 
       {/* Top rail */}
       <motion.div
-        className={`gutter fixed inset-x-0 top-0 z-20 flex h-16 items-center justify-between border-b transition-colors duration-300 lg:h-20 lg:border-transparent lg:bg-transparent ${
-          scrolled ? 'border-bone/10 bg-ink/90 backdrop-blur-md' : 'border-transparent'
+        className={`gutter fixed inset-x-0 top-0 z-20 flex h-16 items-center justify-between transition-colors duration-300 lg:h-20 lg:bg-transparent ${
+          scrolled ? 'bg-ink/90 backdrop-blur-md' : ''
         }`}
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -129,7 +129,7 @@ export function VehicleDetail({ openedId, onClose }: Props) {
           aria-label="Close vehicle details"
         >
           Close
-          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-bone/25 transition-colors duration-300 group-hover:border-bone/70">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-bone/10 transition-colors duration-300 group-hover:bg-bone/20">
             <X className="h-4 w-4" strokeWidth={1.5} />
           </span>
         </button>
@@ -284,9 +284,9 @@ function VehicleInfo({ vehicle: v, onReserve }: { vehicle: Vehicle; onReserve: (
 
       <motion.div variants={fadeUp} className="mt-8">
         <p className="eyebrow text-stone">Specification</p>
-        <dl className="mt-3 border-t border-bone/15">
+        <dl className="mt-3">
           {specs.map(([k, val]) => (
-            <div key={k} className="flex items-baseline justify-between gap-6 border-b border-bone/10 py-2.5">
+            <div key={k} className="flex items-baseline justify-between gap-6 py-2">
               <dt className="text-[0.875rem] text-stone">{k}</dt>
               <dd className="text-right text-[0.9375rem] font-medium tracking-[-0.01em]">{val}</dd>
             </div>

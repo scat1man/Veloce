@@ -245,13 +245,13 @@ export function BookingForm({ vehicleId, locationId, onDone, autoFocus, delay = 
           <motion.p variants={fadeUp} className="text-lede mt-6 max-w-sm text-ash">
             Thank you{name ? `, ${name.split(' ')[0]}` : ''}. A concierge in {chosenCity.city} will be in touch within two hours.
           </motion.p>
-          <motion.dl variants={fadeUp} className="mt-10 border-t border-ink/15">
+          <motion.dl variants={fadeUp} className="mt-8 rounded-[18px] bg-ink/[0.04] px-5 py-2">
             {[
               ['Vehicle', chosen ? vehicleLabel(chosen) : 'Concierge to advise'],
               ['City', `${chosenCity.city}, ${chosenCity.state}`],
               ['Dates', `${fmtDate(pickup)} → ${fmtDate(ret)}`],
             ].map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-6 border-b border-ink/15 py-4">
+              <div key={k} className="flex justify-between gap-6 py-3">
                 <dt className="meta text-ash">{k}</dt>
                 <dd className="text-right text-[0.9375rem]">{v}</dd>
               </div>

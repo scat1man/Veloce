@@ -4,7 +4,6 @@ import { Reveal } from '../animations/Reveal'
 import { ease, viewport } from '../animations/tokens'
 import { fadeUp, stagger } from '../animations/variants'
 import { BookingForm } from '../components/BookingPanel'
-import { SectionLabel } from '../components/SectionLabel'
 import { brand } from '../data/content'
 
 /** The request card rises into place and settles, like a sheet laid on a desk. */
@@ -26,8 +25,7 @@ export function ConciergeSection() {
       <div className="gutter pb-28 pt-28 md:pb-40 md:pt-40">
         <div className="grid-12 gap-y-16">
           <div className="col-span-12 lg:col-span-5">
-            <SectionLabel label="Book a drive" tone="onLight" />
-            <RevealText as="h2" id="concierge-title" className="font-display text-display mt-3" lines={['Your car,', { content: 'at your door.', className: 'text-ash' }]} />
+            <RevealText as="h2" id="concierge-title" className="font-display text-display" lines={['Request a drive.']} />
             <Reveal className="mt-6 max-w-md" delay={0.15}>
               <p className="text-lede text-ash">Tell us the car, the city and your dates. Nothing is charged until a concierge has confirmed every detail with you.</p>
             </Reveal>
@@ -58,7 +56,7 @@ export function ConciergeSection() {
 
           {/* The observed element stays untransformed so the in-view check is reliable. */}
           <motion.div className="col-span-12 lg:col-span-6 lg:col-start-7" initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.15 }}>
-            <motion.div variants={cardIn} className="flex min-h-full flex-col rounded-[18px] border border-rule bg-white p-6 md:p-10">
+            <motion.div variants={cardIn} className="flex min-h-full flex-col rounded-[18px] bg-white p-6 md:p-10">
               <BookingForm inline />
             </motion.div>
           </motion.div>

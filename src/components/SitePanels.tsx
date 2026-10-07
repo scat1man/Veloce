@@ -45,9 +45,9 @@ function LegalNote({ doc, onDone }: { doc: LegalDoc; onDone: () => void }) {
       <motion.p variants={fadeUp} className="text-lede mt-6 max-w-md text-ash">
         {doc.intro}
       </motion.p>
-      <div className="mt-10 border-t border-ink/15">
+      <div className="mt-8">
         {doc.sections.map((s) => (
-          <motion.section key={s.heading} variants={fadeUp} className="border-b border-ink/15 py-6">
+          <motion.section key={s.heading} variants={fadeUp} className="py-5">
             <h3 className="text-[1.0625rem] font-semibold tracking-[-0.015em]">{s.heading}</h3>
             <p className="mt-2 text-[1rem] leading-[1.55] text-ash">{s.body}</p>
           </motion.section>

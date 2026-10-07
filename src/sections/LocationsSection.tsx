@@ -4,7 +4,6 @@ import { RevealText } from '../animations/RevealText'
 import { duration, ease, viewport } from '../animations/tokens'
 import { fadeUp, maskLine, stagger } from '../animations/variants'
 import { Button } from '../components/Button'
-import { SectionLabel } from '../components/SectionLabel'
 import { SmartImage } from '../components/SmartImage'
 import { images, type ImageKey } from '../data/images'
 import { locations, type Location } from '../data/locations'
@@ -67,8 +66,7 @@ export function LocationsSection() {
   return (
     <section id="locations" data-nav-theme="dark" aria-labelledby="locations-title" className="bg-ink text-bone">
       <div className="gutter pb-28 pt-28 md:pb-40 md:pt-40">
-        <SectionLabel label="Locations" />
-        <RevealText as="h2" id="locations-title" className="font-display text-display mt-3" lines={['Five cities.', { content: 'Delivered to your door.', className: 'text-stone' }]} />
+        <RevealText as="h2" id="locations-title" className="font-display text-display" lines={['Five cities, delivered to your door.']} />
 
         <div className="grid-12 mt-14 gap-y-12 md:mt-20">
           {/* City index */}

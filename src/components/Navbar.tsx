@@ -54,8 +54,8 @@ export function Navbar() {
         {/* Translucent surface once the hero is behind us */}
         <motion.div
           aria-hidden
-          className={`absolute inset-0 border-b backdrop-blur-md backdrop-saturate-150 transition-colors duration-300 ${
-            light ? 'border-ink/[0.08] bg-paper/75' : 'border-bone/[0.08] bg-ink/70'
+          className={`absolute inset-0 backdrop-blur-md backdrop-saturate-150 transition-colors duration-300 ${
+            light ? 'bg-paper/75' : 'bg-ink/70'
           }`}
           initial={false}
           animate={{ opacity: scrolled && !menuOpen ? 1 : 0 }}

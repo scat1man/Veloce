@@ -210,13 +210,6 @@ function Intro({ onDone }: { onDone: () => void }) {
             </span>
           ))}
         </motion.p>
-        <motion.span
-          aria-hidden
-          className="mt-5 block h-px w-24 origin-center bg-bone/50"
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: 0.9, delay: 3.0, ease: ease.inOut }}
-        />
         <motion.p
           className="eyebrow mt-4 text-bone/70"
           initial={{ opacity: 0, y: 6 }}

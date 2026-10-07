@@ -6,7 +6,6 @@ import { RevealText } from '../animations/RevealText'
 import { duration, ease, spring } from '../animations/tokens'
 import { fadeUp, stagger } from '../animations/variants'
 import { Reveal } from '../animations/Reveal'
-import { SectionLabel } from '../components/SectionLabel'
 import { SmartImage } from '../components/SmartImage'
 import { VehicleDetail } from '../components/VehicleDetail'
 import { vehicles, type Vehicle } from '../data/vehicles'
@@ -31,22 +30,17 @@ export function ShowroomSection() {
   return (
     <section id="showroom" data-nav-theme="light" aria-labelledby="showroom-title" className="relative bg-paper text-ink">
       <div className="gutter pb-24 pt-24 md:pb-32 md:pt-32">
-        <div className="grid-12 items-end gap-y-6">
-          <div className="col-span-12 lg:col-span-7">
-            <SectionLabel label="The Showroom" tone="onLight" />
-            <RevealText as="h2" id="showroom-title" className="font-display text-display mt-4" lines={['Six cars on the floor.', { content: 'Choose one to walk around it.', className: 'text-ash' }]} />
-          </div>
-          <Reveal className="col-span-12 lg:col-span-4 lg:col-start-9" delay={0.1}>
-            <p className="font-text text-[1rem] leading-[1.6] text-ash">
-              Every car is kept to manufacturer specification and inspected before each drive. Open any of them to see it in 3D, read the full specification and request a date.
-            </p>
+        <div className="max-w-[44rem]">
+          <RevealText as="h2" id="showroom-title" className="font-display text-display" lines={['The Showroom.']} />
+          <Reveal className="mt-5" delay={0.1}>
+            <p className="text-lede text-ash">Six cars, each kept to factory specification and inspected before every drive. Open one to walk around it in 3D.</p>
           </Reveal>
         </div>
 
         {/* Floor filter */}
-        <div className="mt-12 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-y border-rule py-3 md:mt-16">
+        <div className="mt-12 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 md:mt-16">
           <LayoutGroup id="showroom-filter">
-            <ul className="-mx-1 -mb-[14px] flex max-w-full flex-nowrap items-center gap-x-1 overflow-x-auto pb-[14px] [scrollbar-width:none] md:flex-wrap" aria-label="Filter by city">
+            <ul className="flex max-w-full flex-nowrap items-center gap-x-1 overflow-x-auto [scrollbar-width:none] md:flex-wrap" aria-label="Filter by city">
               {[null, ...cities].map((c) => {
                 const on = c === city
                 return (
@@ -55,17 +49,17 @@ export function ShowroomSection() {
                       type="button"
                       onClick={() => setCity(c)}
                       aria-pressed={on}
-                      className={`label relative flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 transition-colors duration-200 ${on ? 'text-ink' : 'text-ash hover:text-ink'}`}
+                      className={`label relative flex h-10 shrink-0 items-center whitespace-nowrap rounded-full px-4 transition-colors duration-200 ${on ? 'text-bone' : 'text-ash hover:text-ink'}`}
                     >
-                      {c ?? 'All locations'}
-                      {on && <motion.span aria-hidden layoutId="showroom-filter-on" className="absolute inset-x-3 -bottom-[13px] h-[2px] bg-ink" transition={spring.hover} />}
+                      {on && <motion.span aria-hidden layoutId="showroom-filter-on" className="absolute inset-0 rounded-full bg-ink" transition={spring.hover} />}
+                      <span className="relative">{c ?? 'All locations'}</span>
                     </button>
                   </li>
                 )
               })}
             </ul>
           </LayoutGroup>
-          <p className="meta hidden text-ash md:block" aria-live="polite">
+          <p className="sr-only" aria-live="polite">
             {shown.length} {shown.length === 1 ? 'car' : 'cars'} {city ? `in ${city}` : 'across five cities'}
           </p>
         </div>
@@ -122,7 +116,7 @@ function Card({ v, webgl, onOpen, eager }: { v: Vehicle; webgl: boolean; onOpen:
       </div>
       <h3 className="font-display text-title mt-2">{v.name}</h3>
 
-      <dl className="mt-4 grid grid-cols-3 border-t border-rule">
+      <dl className="mt-3 grid grid-cols-3">
         {figures.map(([k, val]) => (
           <div key={k} className="pt-3">
             <dt className="text-[0.75rem] text-stone">{k}</dt>
