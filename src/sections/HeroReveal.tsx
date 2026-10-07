@@ -142,7 +142,7 @@ export function HeroReveal() {
  *
  *   0.0s  black; a hairline of light draws across the middle
  *   0.7s  the line opens into a letterbox — the car's silhouette at sunset
- *   2.6s  the letterbox opens to full frame; the house name, VELOCÉ, arrives
+ *   2.0s  VELOCÉ rises letter by letter from the centre; the letterbox opens to full frame
  *   4.1s  the curtain lifts on the home page
  *
  * Plays without input, never waits for loading, and any click or key skips it.
@@ -188,21 +188,40 @@ function Intro({ onDone }: { onDone: () => void }) {
         transition={{ duration: 1.5, times: [0, 0.65, 1], ease: [0.45, 0, 0.25, 1] }}
       />
 
-      {/* The house name */}
-      <div className="gutter absolute inset-x-0 bottom-[12svh] text-center">
+      {/* The house name: letters rise out of a mask from the centre outwards while the tracking settles */}
+      <div className="gutter absolute inset-x-0 bottom-[12svh] flex flex-col items-center text-center">
         <motion.p
-          className="font-wordmark pl-[0.3em] text-[clamp(2.5rem,8vw,6rem)] leading-none"
-          initial={{ opacity: 0, y: 16, letterSpacing: '0.6em' }}
-          animate={{ opacity: 1, y: 0, letterSpacing: '0.3em' }}
-          transition={{ duration: 1.5, delay: 2.3, ease: ease.out }}
+          aria-label={brand.name}
+          className="font-wordmark flex pl-[0.3em] text-[clamp(2.5rem,8vw,6rem)] leading-none"
+          initial={{ letterSpacing: '0.46em' }}
+          animate={{ letterSpacing: '0.3em' }}
+          transition={{ duration: 2.2, delay: 1.9, ease: ease.out }}
         >
-          {brand.name}
+          {[...brand.name].map((ch, i, all) => (
+            <span key={i} aria-hidden className="inline-block overflow-hidden pb-[0.08em]">
+              <motion.span
+                className="inline-block"
+                initial={{ y: '105%', opacity: 0, filter: 'blur(8px)' }}
+                animate={{ y: '0%', opacity: 1, filter: 'blur(0px)' }}
+                transition={{ duration: 1.2, delay: 2.0 + Math.abs(i - (all.length - 1) / 2) * 0.11, ease: ease.out }}
+              >
+                {ch}
+              </motion.span>
+            </span>
+          ))}
         </motion.p>
+        <motion.span
+          aria-hidden
+          className="mt-5 block h-px w-24 origin-center bg-bone/50"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.9, delay: 3.0, ease: ease.inOut }}
+        />
         <motion.p
           className="eyebrow mt-4 text-bone/70"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.9, delay: 2.9, ease: ease.out }}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 3.25, ease: ease.out }}
         >
           Supercar rental
         </motion.p>

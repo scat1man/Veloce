@@ -1,4 +1,4 @@
-import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
+import { cubicBezier, motion, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react'
 import { useRef } from 'react'
 import { RevealText } from '../animations/RevealText'
 import { viewport } from '../animations/tokens'
@@ -11,21 +11,21 @@ import { images } from '../data/images'
 /**
  * Service. Motion here is all masks and scroll:
  *   1. a pinned photograph opens from a framed inset to the full screen while
- *      the camera settles (scale 1.15 → 1), and one line arrives over it;
- *   2. three numbered spreads whose photographs unmask upward, scrubbed by
- *      scroll, with the type following a beat later.
+ *      the camera settles (scale 1.12 → 1), and one line rises into view over it;
+ *   2. then the heading, and three numbered spreads whose photographs unmask
+ *      upward, scrubbed by scroll, with the type following a beat later.
  */
 export function ExperienceSection() {
   return (
     <section id="experience" data-nav-theme="light" aria-labelledby="experience-title" className="border-t border-rule bg-paper text-ink">
+      <Cinema />
+
       <div className="gutter grid-12 gap-y-6 pt-24 md:pt-32">
         <div className="col-span-12 lg:col-span-7">
           <SectionLabel label="Service" tone="onLight" />
           <RevealText as="h2" id="experience-title" className="font-display text-display mt-4" lines={['How a rental works.']} />
         </div>
       </div>
-
-      <Cinema />
 
       <div className="gutter mt-16 flex flex-col gap-24 pb-24 md:mt-20 md:gap-32 md:pb-32">
         {experienceSteps.map((s, i) => (
@@ -36,34 +36,36 @@ export function ExperienceSection() {
   )
 }
 
+/** Calm in, calm out: the frame opens without a hard start or stop. */
+const settle = cubicBezier(0.45, 0, 0.2, 1)
+
 /** The photograph opens out to the full screen as it is scrolled through. */
 function Cinema() {
   const ref = useRef<HTMLDivElement>(null)
   const reduce = useReducedMotion()
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end end'] })
-  const clip = useTransform(
-    scrollYProgress,
-    [0.15, 0.75],
-    reduce ? ['inset(0% 0% 0% 0% round 0px)', 'inset(0% 0% 0% 0% round 0px)'] : ['inset(14% 12% 14% 12% round 28px)', 'inset(0% 0% 0% 0% round 0px)'],
-  )
-  const scale = useTransform(scrollYProgress, [0.15, 0.85], reduce ? [1, 1] : [1.15, 1])
-  const line = useTransform(scrollYProgress, [0.72, 0.9], [0, 1])
-  const lineY = useTransform(scrollYProgress, [0.72, 0.9], reduce ? [0, 0] : [24, 0])
+  // A light spring on top of the page's smooth scroll takes the steps out of fast wheel flicks.
+  const p = useSpring(scrollYProgress, { stiffness: 110, damping: 30, mass: 0.4 })
+  const open = useTransform(p, [0.12, 0.72], [0, 1], { ease: settle, clamp: true })
+  const clip = useTransform(open, (o) => (reduce ? 'inset(0% 0% 0% 0% round 0px)' : `inset(${12 * (1 - o)}% ${10 * (1 - o)}% ${12 * (1 - o)}% ${10 * (1 - o)}% round ${24 * (1 - o)}px)`))
+  const scale = useTransform(p, [0.12, 0.9], reduce ? [1, 1] : [1.12, 1], { ease: settle })
+  const shade = useTransform(p, [0.55, 0.85], [0, 1])
+  const line = useTransform(p, [0.7, 0.92], ['110%', '0%'], { ease: settle, clamp: true })
+  const lineOpacity = useTransform(p, [0.7, 0.85], [0, 1])
 
   return (
-    <div ref={ref} className="relative mt-16 h-[220svh] md:mt-20">
+    <div ref={ref} className="relative h-[240svh]">
       <div className="sticky top-0 h-svh overflow-hidden">
-        <motion.div className="absolute inset-0 overflow-hidden bg-ink" style={{ clipPath: clip }}>
-          <motion.div className="absolute inset-0" style={{ scale }}>
+        <motion.div className="absolute inset-0 overflow-hidden bg-ink will-change-[clip-path]" style={{ clipPath: clip }}>
+          <motion.div className="absolute inset-0 will-change-transform" style={{ scale }}>
             <SmartImage image={images.road} sizes="100vw" className="h-full w-full" />
           </motion.div>
-          <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/10 to-transparent" />
-          <motion.p
-            className="font-display text-headline gutter absolute inset-x-0 bottom-[12svh] text-center text-bone"
-            style={{ opacity: line, y: lineY }}
-          >
-            The road is yours.
-          </motion.p>
+          <motion.div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink/75 via-ink/15 to-transparent" style={{ opacity: shade }} />
+          <div className="gutter absolute inset-x-0 bottom-[12svh] overflow-hidden pb-[0.12em] text-center">
+            <motion.p className="font-display text-headline text-bone" style={reduce ? undefined : { y: line, opacity: lineOpacity }}>
+              The road is yours.
+            </motion.p>
+          </div>
         </motion.div>
       </div>
     </div>
