@@ -11,13 +11,14 @@ import { useStageUI } from '../../three/store'
 const copyIn = withDelay(fadeUp, 0.7)
 
 /**
- * The opening scene. The brand, not a car: a centred headline over a car that is
- * only drawn by its highlights, the camera drifting slowly in the dark.
+ * The opening scene: a centred headline over a car that is only drawn by its
+ * highlights, the camera drifting slowly in the dark.
  *
- *                      Drive the
- *                     exceptional.
- *         Six cars. Five cities. Delivered to your door.
- *              [Book a drive]   Explore the fleet ›
+ *            PERFORMANCE CAR RENTAL · FIVE U.S. CITIES
+ *                   Supercar rental,
+ *                  handled properly.
+ *        Kept to factory specification, delivered to your door.
+ *            [ Book a drive ]  [ View the showroom ]
  *
  *                  [ the car, low-key, below ]
  *
@@ -42,6 +43,11 @@ export function HeroChapter() {
       <div aria-hidden className="absolute inset-x-0 top-0 h-[58%] bg-[radial-gradient(60%_70%_at_50%_30%,rgba(10,10,11,0.75),transparent)]" />
 
       <div className="gutter relative flex h-full flex-col items-center pt-[17svh] text-center md:pt-[15svh]">
+        <motion.div style={{ opacity: fade, y: yHead }}>
+          <motion.p className="eyebrow mb-6 text-stone md:mb-8" variants={withDelay(fadeUp, 0.5)} initial="hidden" animate={play}>
+            Performance car rental <span aria-hidden className="mx-2 text-bone/30">/</span> Five U.S. cities
+          </motion.p>
+        </motion.div>
         <motion.h1
           className="font-display text-mega"
           style={{ y: yHead, opacity: fade, scale: scaleHead }}
@@ -51,36 +57,36 @@ export function HeroChapter() {
         >
           <span className="block overflow-hidden pb-[0.12em] -mb-[0.12em]">
             <motion.span className="block" variants={maskLine}>
-              Drive the
+              Supercar rental,
             </motion.span>
           </span>
           <span className="block overflow-hidden pb-[0.12em] -mb-[0.12em]">
             <motion.span className="block" variants={maskLine}>
-              exceptional.
+              handled properly.
             </motion.span>
           </span>
         </motion.h1>
 
         <motion.div className="flex flex-col items-center" style={{ y: yCopy, opacity: fade }}>
           <motion.p className="text-lede mt-6 max-w-[34rem] text-stone md:mt-8" variants={copyIn} initial="hidden" animate={play}>
-            Six exceptional cars in five cities, delivered to your door.
+            Six cars kept to factory specification, delivered to your door and collected when you are done.
           </motion.p>
           <motion.div
-            className="pointer-events-auto mt-7 flex flex-wrap items-center justify-center gap-x-7 gap-y-3"
+            className="pointer-events-auto mt-8 flex flex-wrap items-center justify-center gap-3"
             variants={withDelay(fadeUp, 0.85)}
             initial="hidden"
             animate={play}
           >
             <Button onClick={() => openBooking()}>Book a drive</Button>
             <Button
-              variant="text"
-              href="#machines"
+              variant="frame"
+              href="#showroom"
               onClick={(e) => {
                 e.preventDefault()
-                scrollToHash('#machines', { offset: window.innerHeight * 0.4 })
+                scrollToHash('#showroom')
               }}
             >
-              Explore the fleet
+              View the showroom
             </Button>
           </motion.div>
         </motion.div>

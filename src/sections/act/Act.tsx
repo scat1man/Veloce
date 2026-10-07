@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react'
-import { vehicles } from '../../data/vehicles'
+import { vehicleById } from '../../data/vehicles'
 import { stage, stageUI, useStageUI } from '../../three/store'
+import { ACT_CARS } from '../../three/timeline'
 import { actScreens } from './actScroll'
 import { CarChapter } from './CarChapter'
 import { HeroChapter } from './HeroChapter'
-import { MachinesChapter } from './MachinesChapter'
 
 /**
- * The 3D act: hero, the machines, then a chapter for every car — all transparent,
+ * The 3D act: the hero, then a chapter for each of the two headline cars — all transparent,
  * scrolling over the fixed WebGL stage. Owns the scroll → stage bridge and tells
  * the renderer when to sleep.
  */
@@ -52,11 +52,11 @@ export function Act() {
     >
       <div ref={probe} aria-hidden className="pointer-events-none absolute left-0 top-0 h-svh w-px" />
       <HeroChapter />
-      <MachinesChapter />
-      {vehicles.map((v, i) => (
-        <CarChapter key={v.id} v={v} i={i} />
-      ))}
-      {/* Gives the last chapter its final screen before the fleet slides over it */}
+      {ACT_CARS.map((id, i) => {
+        const v = vehicleById(id)!
+        return <CarChapter key={v.id} v={v} i={i} />
+      })}
+      {/* Gives the last chapter its final screen before the Showroom slides over it */}
       <div aria-hidden className="h-svh" />
     </div>
   )

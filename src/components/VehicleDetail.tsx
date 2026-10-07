@@ -4,9 +4,8 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { duration, ease, spring } from '../animations/tokens'
 import { fadeUp, imageWipe, maskLine, stagger, type Direction } from '../animations/variants'
 import { vehicleLabel, vehicles, type Vehicle } from '../data/vehicles'
-import { scrollToHash } from '../hooks/scrollTo'
 import { useScrollLock } from '../hooks/useScrollLock'
-import { stageUI, useStageUI } from '../three/store'
+import { useStageUI } from '../three/store'
 import type { SiteImage } from '../data/images'
 
 const VehicleViewer = lazy(() => import('../three/VehicleViewer'))
@@ -37,7 +36,7 @@ export function VehicleDetail({ openedId, onClose }: Props) {
   const webgl = useStageUI((st) => st.webgl)
   type Tab = { label: string; kind: '3d' } | { label: string; kind: 'photo'; image: SiteImage }
   const tabs: Tab[] = [
-    ...(webgl ? [{ label: '3D', kind: '3d' as const }] : []),
+    ...(webgl ? [{ label: '3D view', kind: '3d' as const }] : []),
     ...v.gallery.map((g) => ({ label: g.label, kind: 'photo' as const, image: g.image })),
   ]
   const tab = tabs[Math.min(shot, tabs.length - 1)]
@@ -130,8 +129,8 @@ export function VehicleDetail({ openedId, onClose }: Props) {
           aria-label="Close vehicle details"
         >
           Close
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-bone/10 transition-colors duration-300 group-hover:bg-bone/20">
-            <X className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90" strokeWidth={1.5} />
+          <span className="flex h-9 w-9 items-center justify-center rounded-[2px] border border-bone/25 transition-colors duration-300 group-hover:border-bone/70">
+            <X className="h-4 w-4" strokeWidth={1.5} />
           </span>
         </button>
       </motion.div>
@@ -240,19 +239,6 @@ export function VehicleDetail({ openedId, onClose }: Props) {
               key={v.id}
               vehicle={v}
               onReserve={() => openBooking({ vehicleId: v.id })}
-              onExplore3d={
-                v.model3d && v.chapter
-                  ? () => {
-                      const { chapter, model3d } = v
-                      onClose(v.id)
-                      // Travel to the car's live chapter, then hand the camera to the visitor.
-                      setTimeout(() => {
-                        scrollToHash(`#${chapter}`, { offset: window.innerHeight * 1.6 })
-                        setTimeout(() => stageUI.set({ exploring: model3d! }), 2500)
-                      }, 450)
-                    }
-                  : undefined
-              }
             />
           </AnimatePresence>
 
@@ -266,7 +252,7 @@ export function VehicleDetail({ openedId, onClose }: Props) {
   )
 }
 
-function VehicleInfo({ vehicle: v, onReserve, onExplore3d }: { vehicle: Vehicle; onReserve: () => void; onExplore3d?: () => void }) {
+function VehicleInfo({ vehicle: v, onReserve }: { vehicle: Vehicle; onReserve: () => void }) {
   const specs = [
     ['Engine', v.specs.engine],
     ['Displacement', v.specs.displacement],
@@ -274,11 +260,12 @@ function VehicleInfo({ vehicle: v, onReserve, onExplore3d }: { vehicle: Vehicle;
     [v.specs.sprintLabel, v.specs.sprint],
     ['Top speed', v.specs.topSpeed],
     ['Drivetrain', v.drivetrain],
+    ['Based in', v.location],
   ]
   return (
-    <motion.div variants={stagger(0.06, 0.15)} initial="hidden" animate="show" exit="exit">
+    <motion.div variants={stagger(0.05, 0.15)} initial="hidden" animate="show" exit="exit">
       <motion.div variants={fadeUp}>
-        <BrandLogo manufacturer={v.manufacturer} size="2.1rem" maxWidth="11rem" />
+        <BrandLogo manufacturer={v.manufacturer} size="1.9rem" maxWidth="10rem" />
       </motion.div>
       <h2 id="vehicle-title" className="font-display text-headline mt-6">
         <span className="block overflow-hidden pb-[0.1em] -mb-[0.1em]">
@@ -288,34 +275,29 @@ function VehicleInfo({ vehicle: v, onReserve, onExplore3d }: { vehicle: Vehicle;
         </span>
         <span className="sr-only"> — {v.manufacturer}</span>
       </h2>
-      <motion.p variants={fadeUp} className="text-lede mt-3 text-bone">
+      <motion.p variants={fadeUp} className="text-lede mt-3 text-bone/90">
         {v.tagline}
       </motion.p>
-      <motion.p variants={fadeUp} className="font-text mt-4 max-w-md text-[1.0625rem] leading-[1.55] text-stone">
+      <motion.p variants={fadeUp} className="font-text mt-3 max-w-md text-[1rem] leading-[1.6] text-stone">
         {v.summary}
       </motion.p>
 
-      <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5">
-        {specs.map(([k, val]) => (
-          <motion.div
-            key={k}
-            variants={fadeUp}
-          >
-            <dt className="meta text-stone">{k}</dt>
-            <dd className="font-display mt-1.5 text-[clamp(1.25rem,1.7vw,1.5rem)] leading-tight tracking-[-0.02em]">{val}</dd>
-          </motion.div>
-        ))}
-      </dl>
-      <motion.div variants={fadeUp} className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-3">
-        <Button onClick={onReserve}>Book this car</Button>
-        {onExplore3d && (
-          <Button variant="text" onClick={onExplore3d}>
-            Explore in 3D
-          </Button>
-        )}
+      <motion.div variants={fadeUp} className="mt-8">
+        <p className="eyebrow text-stone">Specification</p>
+        <dl className="mt-3 border-t border-bone/15">
+          {specs.map(([k, val]) => (
+            <div key={k} className="flex items-baseline justify-between gap-6 border-b border-bone/10 py-2.5">
+              <dt className="text-[0.875rem] text-stone">{k}</dt>
+              <dd className="text-right text-[0.9375rem] font-medium tracking-[-0.01em]">{val}</dd>
+            </div>
+          ))}
+        </dl>
       </motion.div>
-      <motion.p variants={fadeUp} className="meta mt-6 text-stone">
-        Based in {v.location}
+      <motion.div variants={fadeUp} className="mt-8 flex flex-wrap items-center gap-3">
+        <Button onClick={onReserve}>Book this car</Button>
+      </motion.div>
+      <motion.p variants={fadeUp} className="meta mt-4 text-stone">
+        Nothing is charged until a concierge confirms your dates.
       </motion.p>
     </motion.div>
   )

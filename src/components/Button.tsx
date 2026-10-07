@@ -3,12 +3,13 @@ import type { MouseEvent, ReactNode } from 'react'
 
 /**
  * One call-to-action language for the whole site:
- *   primary — a filled pill: the single main action in a view (`solid` is an alias)
+ *   primary — a filled block: the single main action in a view (`solid` is an alias)
+ *   frame   — a hairline-framed block, for the second action beside a filled one
  *   text    — a text link with a chevron that steps forward on hover (`outline` is an alias)
  *
  * Renders <a> when given `href` (navigation), otherwise <button> (an action).
  */
-type Variant = 'primary' | 'solid' | 'text' | 'outline'
+type Variant = 'primary' | 'solid' | 'frame' | 'text' | 'outline'
 type Tone = 'onDark' | 'onLight'
 
 type Props = {
@@ -28,6 +29,10 @@ const pill: Record<Tone, string> = {
   onDark: 'bg-bone text-ink hover:bg-white',
   onLight: 'bg-ink text-bone hover:bg-carbon',
 }
+const frame: Record<Tone, string> = {
+  onDark: 'cta-frame text-bone border-bone/35 hover:border-bone hover:bg-bone/[0.06]',
+  onLight: 'cta-frame text-ink border-ink/25 hover:border-ink hover:bg-ink/[0.04]',
+}
 const link: Record<Tone, string> = {
   onDark: 'text-bone/90 hover:text-bone',
   onLight: 'text-ink/85 hover:text-ink',
@@ -46,12 +51,14 @@ export function Button({
   disabled,
 }: Props) {
   const isPill = variant === 'primary' || variant === 'solid'
-  const cls = `cta cta-${size} ${isPill ? `cta-pill ${pill[tone]}` : `cta-link ${link[tone]}`} ${className}`
+  const isFrame = variant === 'frame'
+  const look = isPill ? `cta-pill ${pill[tone]}` : isFrame ? frame[tone] : `cta-link ${link[tone]}`
+  const cls = `cta cta-${size} ${look} ${className}`
 
   const inner = (
     <>
       <span className="cta-label">{children}</span>
-      {!isPill && <ChevronRight className="cta-chevron" strokeWidth={2} aria-hidden />}
+      {!isPill && !isFrame && <ChevronRight className="cta-chevron" strokeWidth={2} aria-hidden />}
     </>
   )
 

@@ -48,7 +48,10 @@ export function CarChapter({ v, i }: Props) {
         <div className="grid-12 relative mt-auto lg:mb-auto lg:mt-[14svh]">
           <motion.div className={`col-span-12 ${panel}`} style={{ y: reveal.y }}>
             <BrandLogo manufacturer={v.manufacturer} size="1.75rem" maxWidth="9rem" />
-            <h2 className="font-display text-headline mt-5 overflow-hidden pb-[0.1em]">
+            <p className="eyebrow mt-5 text-stone">
+              Featured <span aria-hidden className="mx-1.5 text-bone/30">/</span> {v.location.split(',')[0]}
+            </p>
+            <h2 className="font-display text-headline mt-3 overflow-hidden pb-[0.1em]">
               <span className="sr-only">{v.manufacturer} </span>
               <motion.span className="block" style={{ y: nameY }}>
                 {v.name}
@@ -56,11 +59,11 @@ export function CarChapter({ v, i }: Props) {
             </h2>
             <p className="text-lede mt-3 max-w-[24rem] text-stone">{v.tagline}</p>
             {failed && <p className="meta mt-3 text-stone">The 3D model could not be loaded.</p>}
-            <div className="pointer-events-auto mt-7 flex flex-wrap items-center gap-x-7 gap-y-3">
+            <div className="pointer-events-auto mt-7 flex flex-wrap items-center gap-3">
               <Button onClick={() => openBooking({ vehicleId: v.id })}>Book a drive</Button>
               {!failed && (
-                <Button variant="text" onClick={() => stageUI.set({ exploring: v.model3d })}>
-                  Explore in 3D
+                <Button variant="frame" onClick={() => stageUI.set({ exploring: v.model3d })}>
+                  View in 3D
                 </Button>
               )}
             </div>

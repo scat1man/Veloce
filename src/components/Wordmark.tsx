@@ -11,7 +11,7 @@ export function Wordmark({ className = '', animateIn = false, delay = 0 }: Props
     <span
       role="img"
       aria-label="VELOCÉ"
-      className={`font-wordmark -mr-[0.22em] inline-flex overflow-hidden pt-[0.25em] -mt-[0.25em] text-[0.9375rem] leading-none ${className}`}
+      className={`font-wordmark -mr-[0.26em] inline-flex overflow-hidden pt-[0.25em] -mt-[0.25em] text-[0.9375rem] leading-none ${className}`}
     >
       {letters.map((l, i) => (
         <motion.span

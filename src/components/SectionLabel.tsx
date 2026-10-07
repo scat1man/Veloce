@@ -4,11 +4,11 @@ import { viewport } from '../animations/tokens'
 
 type Props = { label: string; className?: string; tone?: 'onDark' | 'onLight' }
 
-/** The quiet line above a section title: "Experience". */
+/** The small capitals above a section title: "THE SHOWROOM". */
 export function SectionLabel({ label, className = '', tone = 'onDark' }: Props) {
   return (
     <motion.p
-      className={`text-[1.0625rem] font-semibold tracking-[-0.015em] ${tone === 'onDark' ? 'text-stone' : 'text-ash'} ${className}`}
+      className={`eyebrow ${tone === 'onDark' ? 'text-stone' : 'text-ash'} ${className}`}
       variants={fadeUp}
       initial="hidden"
       whileInView="show"

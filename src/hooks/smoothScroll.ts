@@ -16,7 +16,7 @@ export function startSmoothScroll() {
     autoRaf: false,
     lerp: 0.085,
     wheelMultiplier: 0.9,
-    // Anchor jumps (#fleet etc.) also glide.
+    // Anchor jumps (#showroom etc.) also glide.
     anchors: false,
   })
   const tick = ({ timestamp }: { timestamp: number }) => lenis?.raf(timestamp)

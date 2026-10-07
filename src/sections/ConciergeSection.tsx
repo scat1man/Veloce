@@ -9,8 +9,8 @@ import { brand } from '../data/content'
 
 /** The request card rises into place and settles, like a sheet laid on a desk. */
 const cardIn = {
-  hidden: { opacity: 0, y: 48, scale: 0.97 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.9, ease: ease.out } },
+  hidden: { opacity: 0, y: 32 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: ease.out } },
 }
 
 const steps = [
@@ -34,9 +34,12 @@ export function ConciergeSection() {
 
             <motion.ol className="mt-12 max-w-md" variants={stagger(0.1)} initial="hidden" whileInView="show" viewport={viewport}>
               {steps.map((s) => (
-                <motion.li key={s.t} variants={fadeUp} className="py-4">
-                  <p className="text-[1.0625rem] font-semibold tracking-[-0.015em]">{s.t}</p>
-                  <p className="mt-1 text-[1rem] leading-[1.5] text-ash">{s.d}</p>
+                <motion.li key={s.t} variants={fadeUp} className="grid grid-cols-[2.5rem_1fr] border-t border-rule py-4 last:border-b">
+                  <span className="eyebrow pt-[0.3em] text-stone">{String(steps.indexOf(s) + 1).padStart(2, '0')}</span>
+                  <span>
+                    <span className="block text-[1.0625rem] font-semibold tracking-[-0.015em]">{s.t}</span>
+                    <span className="mt-1 block text-[1rem] leading-[1.5] text-ash">{s.d}</span>
+                  </span>
                 </motion.li>
               ))}
             </motion.ol>
@@ -56,7 +59,7 @@ export function ConciergeSection() {
 
           {/* The observed element stays untransformed so the in-view check is reliable. */}
           <motion.div className="col-span-12 lg:col-span-6 lg:col-start-7" initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.15 }}>
-            <motion.div variants={cardIn} className="flex min-h-full flex-col rounded-[28px] bg-white p-6 shadow-[0_1px_2px_rgba(10,10,11,0.04),0_24px_60px_-24px_rgba(10,10,11,0.18)] md:p-10">
+            <motion.div variants={cardIn} className="flex min-h-full flex-col rounded-[2px] border border-rule bg-white p-6 md:p-10">
               <BookingForm inline />
             </motion.div>
           </motion.div>

@@ -72,7 +72,6 @@ export const vehicles: Vehicle[] = [
   {
     id: 'revuelto',
     model3d: 'revuelto',
-    chapter: 'car-revuelto',
     manufacturer: 'Lamborghini',
     name: 'Revuelto',
     tagline: 'A V12, electrified.',
@@ -90,7 +89,6 @@ export const vehicles: Vehicle[] = [
   {
     id: '750s',
     model3d: '750s',
-    chapter: 'car-750s',
     manufacturer: 'McLaren',
     name: '750S',
     tagline: 'Carbon tub. Hydraulic steering. Nothing in between.',
@@ -105,7 +103,6 @@ export const vehicles: Vehicle[] = [
   {
     id: 'db12',
     model3d: 'db12',
-    chapter: 'car-db12',
     manufacturer: 'Aston Martin',
     name: 'DB12 Volante',
     tagline: 'The open-top grand tourer.',
@@ -120,7 +117,6 @@ export const vehicles: Vehicle[] = [
   {
     id: 'amg-gt',
     model3d: 'amg-gt',
-    chapter: 'car-amg-gt',
     manufacturer: 'Mercedes-AMG',
     name: 'GT 63',
     tagline: 'One engine, built by one engineer. Room for four.',

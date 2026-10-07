@@ -13,8 +13,8 @@ import { Wordmark } from './Wordmark'
 /**
  * Primary navigation. Transparent over the hero; once the hero is behind us it
  * becomes a translucent, blurred bar with a hairline. Links rest at 70% and come
- * to full strength on hover/focus; the current section is marked by a small dot
- * that glides between links.
+ * to full strength on hover/focus; the current section is marked by a 
+ * hairline that glides between links.
  */
 export function Navbar() {
   const { theme, active, scrolled } = useNavState()
@@ -98,7 +98,7 @@ export function Navbar() {
                       <motion.span
                         aria-hidden
                         layoutId="nav-active"
-                        className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-current"
+                        className="absolute inset-x-0 bottom-2 h-px bg-current"
                         transition={{ type: 'spring', stiffness: 380, damping: 36 }}
                       />
                     )}

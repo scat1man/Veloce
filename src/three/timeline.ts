@@ -5,17 +5,18 @@ import { models, type ModelId } from './models'
  * (1 screen = 1 viewport height of scroll). DOM chapter heights and camera
  * keyframes both read from here, so copy and camera can never drift apart.
  *
- *   hero → the machines → six car chapters
+ *   hero → two car chapters (the rest of the collection lives in the Showroom)
  *
  * Every car chapter has the same three beats, with its own choreography:
  *   brand   — the stage is dark; the manufacturer mark draws itself
  *   reveal  — lights rise, the camera walks around the car
  *   specs   — the camera settles on a technical view; the figures arrive
  */
-export const ACT_CARS: ModelId[] = ['gt3-rs', 'sf90', 'revuelto', '750s', 'db12', 'amg-gt']
+export const ACT_CARS: ModelId[] = ['gt3-rs', 'sf90']
 
 export const HERO_LEN = 1.4
-export const MACHINES_LEN = 1.15
+/** The old six-marque interlude is gone; kept at 0 so the timeline maths stays in one place. */
+export const MACHINES_LEN = 0
 export const CAR_LEN = 2.5
 
 /**
@@ -135,9 +136,6 @@ const keys: Key[] = (() => {
     // on scroll the camera drops to the flank and walks in.
     { s: 0, pos: [7.4, 0.62, 9.8], target: [0, 2.05, 0], fov: 27 },
     { s: 1.0, pos: [6.6, 0.6, 3.6], target: [0, 1.0, 0.2], fov: 30 },
-    // 02 machines — pull back and look over the car: it sits low in frame, beneath the title
-    { s: chapterStart.machines + 0.35, pos: [-5.6, 2.4, 13.2], target: [-3.3, 0.85, 0], fov: 30 },
-    { s: chapterStart.machines + 0.95, pos: [-6.6, 2.2, 12.8], target: [-3.6, 0.8, 0], fov: 30 },
   ]
   ACT_CARS.forEach((id, i) => {
     const s0 = carStart(i)

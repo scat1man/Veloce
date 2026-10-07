@@ -13,8 +13,7 @@ import { Act } from './sections/act/Act'
 import { AboutSection } from './sections/AboutSection'
 import { ConciergeSection } from './sections/ConciergeSection'
 import { ExperienceSection } from './sections/ExperienceSection'
-import { FinalCTA } from './sections/FinalCTA'
-import { FleetSection } from './sections/FleetSection'
+import { ShowroomSection } from './sections/ShowroomSection'
 import { Footer } from './sections/Footer'
 import { LocationsSection } from './sections/LocationsSection'
 import { hasWebGL, stageUI } from './three/store'
@@ -38,7 +37,7 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <SiteProvider>
         <div>
-          <a href="#fleet" className="label sr-only fixed left-4 top-4 z-[90] rounded-full bg-bone px-4 py-3 text-ink focus:not-sr-only">
+          <a href="#showroom" className="label sr-only fixed left-4 top-4 z-[90] rounded-[2px] bg-bone px-4 py-3 text-ink focus:not-sr-only">
             Skip to content
           </a>
 
@@ -57,11 +56,10 @@ export default function App() {
           <Navbar />
           <main className="relative z-10">
             <Act />
-            <FleetSection />
+            <ShowroomSection />
             <ExperienceSection />
             <LocationsSection />
             <AboutSection />
-            <FinalCTA />
             <ConciergeSection />
           </main>
           <Footer />
