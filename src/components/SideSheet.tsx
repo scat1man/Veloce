@@ -60,7 +60,7 @@ export function SideSheet({ label, closeLabel, titleId, onClose, children }: Pro
           <p className="label text-ash">{label}</p>
           <button type="button" onClick={onClose} className="label group -mr-2 flex h-11 items-center gap-3 px-2" aria-label={closeLabel}>
             Close
-            <span className="flex h-9 w-9 items-center justify-center rounded-[2px] border border-ink/20 transition-colors duration-300 group-hover:border-ink/60">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-ink/20 transition-colors duration-300 group-hover:border-ink/60">
               <X className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90" strokeWidth={1.5} />
             </span>
           </button>

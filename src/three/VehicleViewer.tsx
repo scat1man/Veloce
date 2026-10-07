@@ -31,9 +31,10 @@ export type ViewerProps = {
   onReady?: () => void
   /**
    * Preview framing: `distance` scales how far the camera sits; `lookY` raises the aim (the car sits lower);
-   * `spin` turns the camera continuously around the car (radians per second) instead of swaying.
+   * `spin` turns the camera continuously around the car (radians per second) instead of swaying;
+   * `shiftX` slides the car sideways in the frame (fraction of the width; positive moves it right).
    */
-  framing?: { distance?: number; lookY?: number; spin?: number }
+  framing?: { distance?: number; lookY?: number; spin?: number; shiftX?: number }
 }
 
 const TARGET = new THREE.Vector3(0, 0.85, 0)
@@ -217,7 +218,7 @@ function ViewerScene({
         </Suspense>
         </group>
       </ModelBoundary>
-      {mode === 'interactive' ? <OrbitRig reduce={reduce} /> : <DriftRig reduce={reduce} distance={framing?.distance ?? 1} lookY={framing?.lookY ?? TARGET.y} spin={framing?.spin ?? 0} />}
+      {mode === 'interactive' ? <OrbitRig reduce={reduce} /> : <DriftRig reduce={reduce} distance={framing?.distance ?? 1} lookY={framing?.lookY ?? TARGET.y} spin={framing?.spin ?? 0} shiftX={framing?.shiftX ?? 0} />}
     </>
   )
 }
@@ -228,8 +229,15 @@ function Mark({ onMount }: { onMount: () => void }) {
 }
 
 /** Preview camera: a slow orbital drift, or a continuous turn when `spin` is set (camera moves, car stays put) + pointer parallax. */
-function DriftRig({ reduce, distance, lookY, spin }: { reduce: boolean; distance: number; lookY: number; spin: number }) {
+function DriftRig({ reduce, distance, lookY, spin, shiftX }: { reduce: boolean; distance: number; lookY: number; spin: number; shiftX: number }) {
   const { camera, pointer, size } = useThree()
+  // Slide the picture, not the camera, so the car stays centred on its own axis while it turns.
+  useEffect(() => {
+    const cam = camera as THREE.PerspectiveCamera
+    if (!shiftX) return
+    cam.setViewOffset(size.width, size.height, -shiftX * size.width, 0, size.width, size.height)
+    return () => cam.clearViewOffset()
+  }, [camera, size.width, size.height, shiftX])
   const t0 = useRef(0)
   const p = useRef(new THREE.Vector3())
   const aim = useRef(new THREE.Vector3())

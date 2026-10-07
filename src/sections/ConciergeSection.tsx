@@ -32,17 +32,16 @@ export function ConciergeSection() {
               <p className="text-lede text-ash">Tell us the car, the city and your dates. Nothing is charged until a concierge has confirmed every detail with you.</p>
             </Reveal>
 
-            <motion.ol className="mt-12 max-w-md" variants={stagger(0.1)} initial="hidden" whileInView="show" viewport={viewport}>
+            <motion.ul className="mt-12 flex max-w-md flex-col gap-6" variants={stagger(0.1)} initial="hidden" whileInView="show" viewport={viewport}>
               {steps.map((s) => (
-                <motion.li key={s.t} variants={fadeUp} className="grid grid-cols-[2.5rem_1fr] border-t border-rule py-4 last:border-b">
-                  <span className="eyebrow pt-[0.3em] text-stone">{String(steps.indexOf(s) + 1).padStart(2, '0')}</span>
+                <motion.li key={s.t} variants={fadeUp}>
                   <span>
                     <span className="block text-[1.0625rem] font-semibold tracking-[-0.015em]">{s.t}</span>
                     <span className="mt-1 block text-[1rem] leading-[1.5] text-ash">{s.d}</span>
                   </span>
                 </motion.li>
               ))}
-            </motion.ol>
+            </motion.ul>
             <p className="meta mt-6 text-ash">
               Prefer to talk?{' '}
               <a className="link-underline text-ink" href={`mailto:${brand.email}`}>
@@ -59,7 +58,7 @@ export function ConciergeSection() {
 
           {/* The observed element stays untransformed so the in-view check is reliable. */}
           <motion.div className="col-span-12 lg:col-span-6 lg:col-start-7" initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.15 }}>
-            <motion.div variants={cardIn} className="flex min-h-full flex-col rounded-[2px] border border-rule bg-white p-6 md:p-10">
+            <motion.div variants={cardIn} className="flex min-h-full flex-col rounded-[18px] border border-rule bg-white p-6 md:p-10">
               <BookingForm inline />
             </motion.div>
           </motion.div>

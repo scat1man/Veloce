@@ -44,17 +44,17 @@
 @utility text-mega {
   font-size: clamp(3rem, 6.4vw, 6rem);
   line-height: 1.05;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
 @utility text-display {
   font-size: clamp(2.5rem, 5vw, 5rem);
   line-height: 1.05;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
 @utility text-headline {
   font-size: clamp(2rem, 3.4vw, 3rem);
   line-height: 1.08;
-  letter-spacing: -0.003em;
+  letter-spacing: -0.012em;
 }
 @utility text-numeral {
   font-family: var(--font-display);
@@ -67,19 +67,19 @@
 @utility text-title {
   font-size: clamp(1.5rem, 2vw, 1.75rem);
   line-height: 1.14;
-  letter-spacing: 0.007em;
+  letter-spacing: -0.01em;
 }
 @utility text-lede {
   font-size: clamp(1.0625rem, 1.3vw, 1.3125rem);
   font-weight: 400;
   line-height: 1.4;
-  letter-spacing: 0.011em;
+  letter-spacing: -0.005em;
   text-wrap: pretty;
 }
 
 @utility font-text {
   font-weight: 400;
-  letter-spacing: -0.022em;
+  letter-spacing: -0.016em;
   text-wrap: pretty;
 }
 
@@ -117,8 +117,8 @@
 /* UI labels — navigation, buttons */
 @utility label {
   font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: -0.006em;
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 /* ---------- Layout ------------------------------------------------------- */
@@ -172,7 +172,7 @@ html.lenis body {
     font-size: 1.0625rem;
     line-height: 1.47;
     font-weight: 400;
-    letter-spacing: -0.022em;
+    letter-spacing: -0.016em;
     font-optical-sizing: auto;
     background: var(--color-ink);
     -webkit-font-smoothing: antialiased;
@@ -187,7 +187,7 @@ html.lenis body {
   :focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 4px;
-    border-radius: 2px;
+    border-radius: 8px;
   }
   button {
     cursor: pointer;
@@ -221,17 +221,17 @@ html.lenis body {
 }
 
 /* ---------- Call to action (components/Button.tsx) -----------------------
-   pill — the one filled action per view (a squared block, not a capsule);
+   pill — the one filled action per view (an Apple-style capsule);
    link — text with a chevron.                                             */
 .cta {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  min-height: 2.875rem;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  letter-spacing: -0.006em;
+  min-height: 2.75rem;
+  font-size: 1.0625rem;
+  font-weight: 400;
+  letter-spacing: -0.016em;
   white-space: nowrap;
   user-select: none;
   transition:
@@ -246,8 +246,8 @@ html.lenis body {
 }
 .cta-pill {
   justify-content: center;
-  padding-inline: 1.5rem;
-  border-radius: 2px;
+  padding-inline: 1.375rem;
+  border-radius: 980px;
 }
 .cta-pill:active:not(:disabled) {
   transform: translateY(1px);
@@ -268,7 +268,7 @@ html.lenis body {
   text-decoration-thickness: 1px;
 }
 .cta-sm {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   min-height: 2.25rem;
 }
 .cta-sm.cta-pill {
@@ -284,8 +284,8 @@ html.lenis body {
 /* Secondary block action: a hairline frame (used beside a filled one) */
 .cta-frame {
   justify-content: center;
-  padding-inline: 1.5rem;
-  border-radius: 2px;
+  padding-inline: 1.375rem;
+  border-radius: 980px;
   border: 1px solid currentColor;
 }
 

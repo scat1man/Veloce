@@ -41,7 +41,7 @@ export function AboutSection() {
         </div>
 
         <motion.div
-          className="relative mt-16 aspect-[4/3] overflow-hidden rounded-[2px] md:mt-24 md:aspect-[21/9]"
+          className="relative mt-16 aspect-[4/3] overflow-hidden rounded-[18px] md:mt-24 md:aspect-[21/9]"
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, amount: 0.35 }}

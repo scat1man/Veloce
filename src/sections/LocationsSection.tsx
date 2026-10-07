@@ -155,7 +155,7 @@ function CityDetails({ l, compact = false }: { l: Location; compact?: boolean })
   const image = images[cityImage[l.id]]
   return (
     <div>
-      <div className={`relative overflow-hidden rounded-[2px] bg-carbon ${compact ? 'aspect-[16/10]' : 'aspect-[16/11]'}`}>
+      <div className={`relative overflow-hidden rounded-[18px] bg-carbon ${compact ? 'aspect-[16/10]' : 'aspect-[16/11]'}`}>
         <AnimatePresence initial={false}>
           <motion.div
             key={l.id}

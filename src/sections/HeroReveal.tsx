@@ -73,7 +73,7 @@ export function HeroReveal() {
             <VehicleViewer
               modelId={v.model3d}
               holdDark={intro}
-              framing={desktop ? { distance: 1.45, lookY: 1.7, spin: 0.2 } : { distance: 1.3, lookY: 0.45, spin: 0.2 }}
+              framing={desktop ? { distance: 1.2, lookY: 1.0, spin: 0.2, shiftX: 0.18 } : { distance: 1.3, lookY: 0.45, spin: 0.2 }}
               className="absolute inset-0"
               renderFallback={() => <SmartImage image={v.image} priority sizes="100vw" className="h-full w-full" />}
             />
@@ -125,7 +125,7 @@ export function HeroReveal() {
         transition={{ duration: 1.1, delay: intro ? 0 : 0.8 }}
       >
         {specs.map(([k, val]) => (
-          <div key={k} className="border-t border-bone/20 pr-6 pt-3">
+          <div key={k} className="pr-6">
             <dt className="eyebrow text-[0.6875rem] text-stone">{k}</dt>
             <dd className="font-display mt-1 text-[1.125rem] tracking-[-0.01em]">{val}</dd>
           </div>

@@ -283,7 +283,7 @@ const fmtDate = (s: string) =>
   new Date(s + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
 export const inputClass =
-  'h-14 w-full rounded-[2px] border border-ink/15 bg-white px-4 text-[1.0625rem] text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-ash/60 hover:border-ink/25 focus:border-ink focus:shadow-[0_0_0_1px_rgba(11,11,12,0.9)] focus-visible:outline-none'
+  'h-14 w-full rounded-[12px] border border-ink/15 bg-white px-4 text-[1.0625rem] text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-ash/60 hover:border-ink/25 focus:border-ink focus:shadow-[0_0_0_1px_rgba(11,11,12,0.9)] focus-visible:outline-none'
 
 export function Field({ label, children, className = '', id: fixedId }: { label: string; children: (id: string) => ReactNode; className?: string; id?: string }) {
   const auto = useId()

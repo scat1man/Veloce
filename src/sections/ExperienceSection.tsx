@@ -12,7 +12,7 @@ import { images } from '../data/images'
  * Service. Motion here is all masks and scroll:
  *   1. a pinned photograph opens from a framed inset to the full screen while
  *      the camera settles (scale 1.12 → 1), and one line rises into view over it;
- *   2. then the heading, and three numbered spreads whose photographs unmask
+ *   2. then the heading, and three spreads whose photographs unmask
  *      upward, scrubbed by scroll, with the type following a beat later.
  */
 export function ExperienceSection() {
@@ -29,7 +29,7 @@ export function ExperienceSection() {
 
       <div className="gutter mt-16 flex flex-col gap-24 pb-24 md:mt-20 md:gap-32 md:pb-32">
         {experienceSteps.map((s, i) => (
-          <Spread key={s.title} step={s} n={i + 1} flip={i % 2 === 1} />
+          <Spread key={s.title} step={s} flip={i % 2 === 1} />
         ))}
       </div>
     </section>
@@ -72,19 +72,19 @@ function Cinema() {
   )
 }
 
-function Spread({ step, n, flip }: { step: ExperienceStep; n: number; flip: boolean }) {
+function Spread({ step, flip }: { step: ExperienceStep; flip: boolean }) {
   const ref = useRef<HTMLElement>(null)
   const reduce = useReducedMotion()
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
   // Unmask upward as the spread enters, drift a little slower than the page throughout.
-  const clip = useTransform(scrollYProgress, [0.05, 0.42], reduce ? ['inset(0% 0% 0% 0% round 20px)', 'inset(0% 0% 0% 0% round 20px)'] : ['inset(100% 0% 0% 0% round 20px)', 'inset(0% 0% 0% 0% round 20px)'])
+  const clip = useTransform(scrollYProgress, [0.05, 0.42], reduce ? ['inset(0% 0% 0% 0% round 18px)', 'inset(0% 0% 0% 0% round 18px)'] : ['inset(100% 0% 0% 0% round 18px)', 'inset(0% 0% 0% 0% round 18px)'])
   const y = useTransform(scrollYProgress, [0, 1], reduce ? ['0%', '0%'] : ['-7%', '7%'])
   const scale = useTransform(scrollYProgress, [0.05, 0.5], reduce ? [1, 1] : [1.12, 1])
 
   return (
     <article ref={ref} className="grid-12 items-center gap-y-10" aria-label={step.title}>
       <motion.div
-        className={`relative col-span-12 aspect-[4/5] overflow-hidden rounded-[20px] md:aspect-[16/11] lg:col-span-7 lg:aspect-[5/4] ${flip ? 'lg:col-start-6' : ''}`}
+        className={`relative col-span-12 aspect-[4/5] overflow-hidden rounded-[18px] md:aspect-[16/11] lg:col-span-7 lg:aspect-[5/4] ${flip ? 'lg:col-start-6' : ''}`}
         style={{ clipPath: clip }}
       >
         <motion.div className="absolute inset-[-8%_0]" style={{ y, scale }}>
@@ -99,9 +99,7 @@ function Spread({ step, n, flip }: { step: ExperienceStep; n: number; flip: bool
         whileInView="show"
         viewport={viewport}
       >
-        <motion.p variants={fadeUp} className="eyebrow flex items-center gap-3 text-ash">
-          <span className="text-ink">{String(n).padStart(2, '0')}</span>
-          <span aria-hidden className="h-px w-8 bg-ink/25" />
+        <motion.p variants={fadeUp} className="eyebrow text-ash">
           {step.title.replace(/\.$/, '')}
         </motion.p>
         <div className="mt-5 overflow-hidden pb-[0.1em]">

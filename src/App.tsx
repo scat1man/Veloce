@@ -35,7 +35,7 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <SiteProvider>
         <div>
-          <a href="#showroom" className="label sr-only fixed left-4 top-4 z-[90] rounded-[2px] bg-bone px-4 py-3 text-ink focus:not-sr-only">
+          <a href="#showroom" className="label sr-only fixed left-4 top-4 z-[90] rounded-full bg-bone px-4 py-3 text-ink focus:not-sr-only">
             Skip to content
           </a>
 

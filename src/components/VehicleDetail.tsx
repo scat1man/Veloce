@@ -129,7 +129,7 @@ export function VehicleDetail({ openedId, onClose }: Props) {
           aria-label="Close vehicle details"
         >
           Close
-          <span className="flex h-9 w-9 items-center justify-center rounded-[2px] border border-bone/25 transition-colors duration-300 group-hover:border-bone/70">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-bone/25 transition-colors duration-300 group-hover:border-bone/70">
             <X className="h-4 w-4" strokeWidth={1.5} />
           </span>
         </button>
