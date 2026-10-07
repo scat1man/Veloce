@@ -63,7 +63,7 @@ function Cinema() {
           <motion.div aria-hidden className="absolute inset-0 bg-gradient-to-t from-ink/75 via-ink/15 to-transparent" style={{ opacity: shade }} />
           <div className="gutter absolute inset-x-0 bottom-[12svh] overflow-hidden pb-[0.12em] text-center">
             <motion.p className="font-display text-headline text-bone" style={reduce ? undefined : { y: line, opacity: lineOpacity }}>
-              The road is yours.
+              Nothing between you and the road.
             </motion.p>
           </div>
         </motion.div>
