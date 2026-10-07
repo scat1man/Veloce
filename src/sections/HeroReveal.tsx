@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { ease } from '../animations/tokens'
 import { Button } from '../components/Button'
 import { SmartImage } from '../components/SmartImage'
+import { brand } from '../data/content'
 import { images } from '../data/images'
 import { vehicleById } from '../data/vehicles'
 import { scrollToHash } from '../hooks/scrollTo'
@@ -141,14 +142,12 @@ export function HeroReveal() {
  *
  *   0.0s  black; a hairline of light draws across the middle
  *   0.7s  the line opens into a letterbox — the car's silhouette at sunset
- *   1.9s  the letterbox opens to full frame; maker and model are named
+ *   1.9s  the letterbox opens to full frame; the house name, VELOCÉ, arrives
  *   2.6s  the curtain lifts on the home page
  *
  * Plays without input, never waits for loading, and any click or key skips it.
  */
 function Intro({ onDone }: { onDone: () => void }) {
-  const v = vehicleById(HERO_ID)!
-
   useEffect(() => {
     const t = setTimeout(onDone, INTRO_MS - 600)
     window.addEventListener('pointerdown', onDone)
@@ -189,23 +188,23 @@ function Intro({ onDone }: { onDone: () => void }) {
         transition={{ duration: 1.0, times: [0, 0.65, 1], ease: [0.65, 0, 0.35, 1] }}
       />
 
-      {/* The name */}
+      {/* The house name */}
       <div className="gutter absolute inset-x-0 bottom-[12svh] text-center">
         <motion.p
-          className="eyebrow text-bone/70"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 1.6, ease: ease.out }}
+          className="font-wordmark pl-[0.3em] text-[clamp(2.5rem,8vw,6rem)] leading-none"
+          initial={{ opacity: 0, y: 16, letterSpacing: '0.6em' }}
+          animate={{ opacity: 1, y: 0, letterSpacing: '0.3em' }}
+          transition={{ duration: 1.1, delay: 1.5, ease: ease.out }}
         >
-          {v.manufacturer}
+          {brand.name}
         </motion.p>
         <motion.p
-          className="font-display mt-2 text-[clamp(2.25rem,6vw,4.5rem)] leading-none"
-          initial={{ opacity: 0, y: 16, letterSpacing: '0.12em' }}
-          animate={{ opacity: 1, y: 0, letterSpacing: '-0.01em' }}
-          transition={{ duration: 0.9, delay: 1.75, ease: ease.out }}
+          className="eyebrow mt-4 text-bone/70"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 1.9, ease: ease.out }}
         >
-          {v.name}
+          Supercar rental
         </motion.p>
       </div>
 
