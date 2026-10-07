@@ -8,12 +8,17 @@ import { startSmoothScroll } from './hooks/smoothScroll'
 import { SiteProvider } from './hooks/useSite'
 import { Footer } from './sections/Footer'
 import { HeroReveal } from './sections/HeroReveal'
+import { AboutSection } from './sections/AboutSection'
+import { ConciergeSection } from './sections/ConciergeSection'
+import { ExperienceSection } from './sections/ExperienceSection'
+import { LocationsSection } from './sections/LocationsSection'
 import { MarquesSection } from './sections/MarquesSection'
 import { ShowroomSection } from './sections/ShowroomSection'
 import { hasWebGL, stageUI } from './three/store'
 
 /**
- * One main page: the car reveal, the marques, the Showroom. Booking opens as
+ * One main page: the car reveal, the marques, the Showroom, then how a
+ * rental works, the cities, the company and the concierge. Booking opens as
  * a side panel from any "Book" action.
  */
 export default function App() {
@@ -42,6 +47,10 @@ export default function App() {
             </ErrorBoundary>
             <MarquesSection />
             <ShowroomSection />
+            <ExperienceSection />
+            <LocationsSection />
+            <AboutSection />
+            <ConciergeSection />
           </main>
           <Footer />
           <BookingPanel />
