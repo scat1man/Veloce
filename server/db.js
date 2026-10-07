@@ -38,6 +38,20 @@ export function openDb(dataDir) {
   if (!columns.has('note')) db.exec("ALTER TABLE bookings ADD COLUMN note TEXT NOT NULL DEFAULT ''") // staff-only
   if (!columns.has('updated_at')) db.exec('ALTER TABLE bookings ADD COLUMN updated_at TEXT')
 
+  // What staff did in the concierge, kept so the console can show an activity log
+  // and each booking's history. Purged with the same retention as bookings.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS admin_events (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      at          TEXT    NOT NULL DEFAULT (datetime('now')),
+      event       TEXT    NOT NULL,     -- login_ok, login_failed, status_change, note_saved, ...
+      reference   TEXT,                 -- the booking it concerns, if any
+      detail      TEXT    NOT NULL DEFAULT '',
+      ip          TEXT
+    );
+    CREATE INDEX IF NOT EXISTS admin_events_ref ON admin_events (reference);
+  `)
+
   // Older databases may hold mixed-case emails; lookups compare lowercase.
   db.exec('UPDATE bookings SET email = lower(email) WHERE email != lower(email)')
   return db

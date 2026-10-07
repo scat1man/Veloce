@@ -6,6 +6,7 @@ import { existsSync } from 'node:fs'
 import { extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { clearSessionCookie, createSessionStore, passwordMatches, sessionId, setSessionCookie } from './auth.js'
+import { createActivityLog } from './activity.js'
 import { createBookingStore, LIMITS, newReference, validate } from './bookings.js'
 import { cities, vehicles } from './catalog.js'
 import { loadConfig } from './config.js'
@@ -31,10 +32,23 @@ const isString = (v) => typeof v === 'string'
 export function createApp(options = {}) {
   const config = loadConfig(options.processEnv ?? process.env, options)
   const { log } = config
-  const audit = (event, fields) =>
-    log(`[audit] ${new Date().toISOString()} ${event} ${Object.entries(fields).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(' ')}`)
-
   const db = openDb(config.dataDir)
+  const activity = createActivityLog(db)
+  // Every audit line goes to the host's logs; staff actions (admin.*) are also kept in the
+  // database so the console's Activity page and each booking's history can show them.
+  const audit = (event, fields) => {
+    log(`[audit] ${new Date().toISOString()} ${event} ${Object.entries(fields).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(' ')}`)
+    // Blocked CSRF and rate-limited sign-ins can be triggered by anyone, as often as they like,
+    // so they stay in the host's logs only and cannot flood the database.
+    if (!event.startsWith('admin.') || event === 'admin.csrf_blocked' || event === 'admin.login_blocked') return
+    const { ip = null, reference = null, from, to, rows } = fields
+    const detail = from !== undefined ? `${from} → ${to}` : rows !== undefined ? `${rows} booking${rows === 1 ? '' : 's'}` : ''
+    try {
+      activity.record(event.slice('admin.'.length), { reference, detail, ip })
+    } catch (err) {
+      console.error('[audit] could not store event:', err)
+    }
+  }
   const bookings = createBookingStore(db)
   const sessions = createSessionStore(db, { hours: config.sessionHours })
 
@@ -46,6 +60,7 @@ export function createApp(options = {}) {
     try {
       const removed = bookings.purge(config.retentionDays)
       const expired = sessions.purgeExpired()
+      activity.purge(config.retentionDays)
       if (removed || expired) log(`[retention] removed ${removed} booking(s) older than ${config.retentionDays} days, ${expired} expired session(s)`)
     } catch (err) {
       console.error('[retention] failed:', err)
@@ -191,6 +206,14 @@ export function createApp(options = {}) {
     )
   })
   app.get('/api/admin/bookings', requireAdmin, (_req, res) => res.json(bookings.listBookings()))
+
+  // Activity log: sign-ins and every change made in the console, newest first. ?limit=1..500
+  app.get('/api/admin/activity', requireAdmin, (req, res) => res.json(activity.recent(Number.parseInt(req.query.limit, 10) || 200)))
+  app.get('/api/admin/bookings/:reference/history', requireAdmin, (req, res) => {
+    const reference = req.params.reference.toUpperCase()
+    if (reference.length > LIMITS.reference) return res.status(404).json({ error: 'Booking not found.' })
+    res.json(activity.forBooking(reference))
+  })
 
   // Spreadsheet export. Cells that start like a formula are prefixed so Excel shows them as text.
   app.get('/api/admin/bookings.csv', requireAdmin, (req, res) => {

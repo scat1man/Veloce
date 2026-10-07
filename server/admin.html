@@ -23,6 +23,7 @@
       <a href="#overview" data-view="overview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4zm0 7h6v-5H4zm10 0h6v-9h-6zm0-16v5h6V4z"/></svg>Overview</a>
       <a href="#bookings" data-view="bookings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2V3h-2v2H9V3zm-2 7h14v9H5z"/></svg>Bookings<span class="badge" id="pending-badge" hidden></span></a>
       <a href="#fleet" data-view="fleet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11a2 2 0 0 1 2 2v4h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H3v-4a2 2 0 0 1 2-2m2.1 0h9.8l-1-3H8.1z"/></svg>Fleet</a>
+      <a href="#activity" data-view="activity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-2.05-4.95L14 10h7V3l-2.64 2.64A8.96 8.96 0 0 0 12 3m-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>Activity</a>
     </nav>
     <div class="side-foot">
       <p class="session" id="session"></p>
@@ -88,6 +89,13 @@
       </article>
       <div class="cars" id="cars"></div>
     </section>
+
+    <section id="view-activity" class="view" hidden>
+      <article class="panel">
+        <header><h2>Sign-ins and changes</h2><span class="hint">Newest first · kept as long as bookings</span></header>
+        <ul class="list feed" id="activity"></ul>
+      </article>
+    </section>
   </div>
 </div>
 
@@ -114,6 +122,10 @@
     <h3><label for="d-note">Staff note</label></h3>
     <textarea id="d-note" rows="4" maxlength="2000" placeholder="Only staff see this. E.g. delivery address, called guest, deposit received."></textarea>
     <div class="row"><span class="hint" id="d-note-state"></span><button type="button" class="btn" id="d-save">Save note</button></div>
+  </div>
+  <div class="block">
+    <h3>History</h3>
+    <ul class="list feed" id="d-history"></ul>
   </div>
   <div class="block actions-row">
     <a class="btn ghost" id="d-mail">Email guest</a>

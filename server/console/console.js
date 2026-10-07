@@ -5,10 +5,11 @@ const $ = (id) => document.getElementById(id)
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 const DAY = 864e5
 const STATUSES = ['pending', 'confirmed', 'cancelled']
-const VIEWS = { overview: 'Overview', bookings: 'Bookings', fleet: 'Fleet' }
+const VIEWS = { overview: 'Overview', bookings: 'Bookings', fleet: 'Fleet', activity: 'Activity' }
 
 const state = {
   bookings: [],
+  activity: [],
   vehicles: {},
   view: 'overview',
   filter: 'all',
@@ -55,6 +56,7 @@ async function api(url, init = {}) {
 async function load({ quiet = false } = {}) {
   try {
     state.bookings = await api('/api/admin/bookings')
+    if (state.view === 'activity') state.activity = await api('/api/admin/activity')
     state.loadedAt = new Date()
     render()
   } catch (err) {
@@ -67,6 +69,7 @@ async function update(reference, patch, message) {
     const updated = await api(`/api/admin/bookings/${encodeURIComponent(reference)}`, { method: 'PATCH', body: JSON.stringify(patch) })
     state.bookings = state.bookings.map((b) => (b.reference === reference ? updated : b))
     render()
+    loadHistory(reference)
     if (message) toast(message)
     return true
   } catch (err) {
@@ -98,6 +101,7 @@ function route() {
   if (ref) openDrawer(decodeURIComponent(ref))
   else closeDrawer(false)
   render()
+  if (state.view === 'activity') loadActivity()
 }
 
 // ---------- Rendering ----------
@@ -113,6 +117,7 @@ function render() {
   if (state.view === 'overview') renderOverview()
   if (state.view === 'bookings') renderBookings()
   if (state.view === 'fleet') renderFleet()
+  if (state.view === 'activity') renderActivity()
   if (state.open) fillDrawer()
 }
 
@@ -235,6 +240,46 @@ function renderFleet() {
     .join('')
 }
 
+// ---------- Activity: what staff did, from the server's log ----------
+const EVENTS = {
+  login_ok: 'Signed in',
+  login_failed: 'Failed sign-in attempt',
+  logout: 'Signed out',
+  status_change: 'Status changed',
+  note_saved: 'Note saved',
+  booking_deleted: 'Booking deleted',
+  export: 'Exported bookings to CSV',
+}
+function eventItem(e, { withRef = true } = {}) {
+  const when = received(e.at)
+  const tone = e.event === 'login_failed' || e.event === 'booking_deleted' ? 'bad' : ''
+  // Deleted bookings cannot be opened any more, so their reference is plain text.
+  const exists = e.reference && state.bookings.some((b) => b.reference === e.reference)
+  const ref = !withRef || !e.reference ? '' : exists ? ` <a href="#bookings/${esc(e.reference)}">${esc(e.reference)}</a>` : ` <span class="ref">${esc(e.reference)}</span>`
+  return `<li class="${tone}"><i class="dot"></i><div class="who"><strong>${esc(EVENTS[e.event] ?? e.event)}${ref}</strong>${e.detail ? `<span>${esc(e.detail)}</span>` : ''}</div><span class="when" title="${esc(when.toLocaleString())}${e.ip ? ' · ' + esc(e.ip) : ''}">${esc(ago(when))}</span></li>`
+}
+async function loadActivity() {
+  try {
+    state.activity = await api('/api/admin/activity')
+    renderActivity()
+  } catch (err) {
+    toast(err.message, true)
+  }
+}
+function renderActivity() {
+  $('activity').innerHTML = state.activity.length ? state.activity.map((e) => eventItem(e)).join('') : '<li class="empty">Nothing yet. Sign-ins and changes appear here.</li>'
+}
+async function loadHistory(reference) {
+  if (state.open !== reference) return
+  try {
+    const events = await api(`/api/admin/bookings/${encodeURIComponent(reference)}/history`)
+    if (state.open !== reference) return
+    $('d-history').innerHTML = events.length ? events.map((e) => eventItem(e, { withRef: false })).join('') : '<li class="empty">No changes yet.</li>'
+  } catch {
+    $('d-history').innerHTML = '<li class="empty">Could not load the history.</li>'
+  }
+}
+
 // ---------- Drawer ----------
 function openDrawer(ref) {
   state.open = ref.toUpperCase()
@@ -247,7 +292,9 @@ function openDrawer(ref) {
   $('drawer').setAttribute('aria-hidden', 'false')
   $('scrim').hidden = false
   noteDirty = false
+  $('d-history').innerHTML = ''
   fillDrawer(true)
+  loadHistory(state.open)
   setTimeout(() => $('d-close').focus(), 50)
 }
 function closeDrawer(updateHash = true) {

@@ -221,3 +221,50 @@ describe('admin behind an HTTPS proxy (production)', () => {
     assert.equal(direct.headers.get('strict-transport-security'), null)
   })
 })
+
+describe('admin activity log', () => {
+  let srv, cookie
+  before(async () => {
+    srv = await start()
+    const res = await postJson(`${srv.base}/api/admin/login`, { password: PASSWORD }, { Origin: srv.base })
+    cookie = cookieFrom(res).split(';')[0]
+  })
+  after(() => srv.close())
+
+  test('needs a session', async () => {
+    assert.equal((await fetch(`${srv.base}/api/admin/activity`)).status, 401)
+    assert.equal((await fetch(`${srv.base}/api/admin/bookings/VLC-AAAAAAAA/history`)).status, 401)
+  })
+
+  test('records sign-ins and changes, newest first, with per-booking history', async () => {
+    const created = await (await postJson(`${srv.base}/api/bookings`, booking())).json()
+    const patch = (body) =>
+      fetch(`${srv.base}/api/admin/bookings/${created.reference}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: cookie, Origin: srv.base },
+        body: JSON.stringify(body),
+      })
+    assert.equal((await patch({ status: 'confirmed' })).status, 200)
+    assert.equal((await patch({ note: 'Deliver to the Four Seasons' })).status, 200)
+
+    const log = await (await fetch(`${srv.base}/api/admin/activity`, { headers: { Cookie: cookie } })).json()
+    assert.deepEqual(log.slice(0, 3).map((e) => e.event), ['note_saved', 'status_change', 'login_ok'])
+    assert.equal(log[1].detail, 'pending → confirmed')
+    assert.equal(log[1].reference, created.reference)
+    assert.ok(!JSON.stringify(log).includes('Four Seasons'), 'note text is not copied into the log')
+
+    const history = await (await fetch(`${srv.base}/api/admin/bookings/${created.reference.toLowerCase()}/history`, { headers: { Cookie: cookie } })).json()
+    assert.deepEqual(history.map((e) => e.event), ['note_saved', 'status_change'])
+  })
+
+  test('blocked cross-site requests are not stored', async () => {
+    await postJson(`${srv.base}/api/admin/login`, { password: 'x' }, { Origin: 'https://evil.example' })
+    const log = await (await fetch(`${srv.base}/api/admin/activity`, { headers: { Cookie: cookie } })).json()
+    assert.ok(!log.some((e) => e.event === 'csrf_blocked'))
+  })
+
+  test('the Activity page is part of the console', async () => {
+    const page = await (await fetch(`${srv.base}/admin`, { headers: { Cookie: cookie } })).text()
+    assert.match(page, /id="view-activity"/)
+  })
+})

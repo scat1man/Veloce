@@ -232,3 +232,13 @@ dialog p { color: var(--stone); margin: 8px 0 20px; }
   td.empty { grid-column: 1 / -1; display: block; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* ---------- Activity log and booking history ---------- */
+.feed li { align-items: baseline; }
+.feed .dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--stone); transform: translateY(-1px); }
+.feed li.bad .dot { background: var(--danger); }
+.feed .who { cursor: default; }
+.feed .who strong { white-space: normal; }
+.feed .who a { color: inherit; text-underline-offset: 3px; }
+.feed .ref { font-variant-numeric: tabular-nums; color: var(--stone); font-weight: 400; }
+#d-history { max-height: 260px; overflow-y: auto; }
