@@ -38,6 +38,12 @@ services:
         sync: false
       - key: ADMIN_GOOGLE_EMAILS    # Google accounts allowed into /admin, comma-separated
         sync: false
+      # Permanent copy of the database in Turso (free; see DEPLOY.md). Without it, the free
+      # plan forgets every booking whenever the site sleeps, restarts or updates.
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
       - key: TRUST_PROXY            # Render puts one proxy in front of the app
         value: "1"
       # Online deposits (optional, see DEPLOY.md): add these in the Environment tab when ready.

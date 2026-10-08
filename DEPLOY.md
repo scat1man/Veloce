@@ -255,7 +255,8 @@ With a custom domain, add its address to step 3 as well. Google only asks for na
 - **750 free hours per month** across all your free services — enough for one site running all month.
 - **Bandwidth:** about 5 GB/month free. Each first visit downloads roughly 5–15 MB (3D cars and
   photos, cached afterwards), so this covers several hundred visits — plenty for a showcase.
-- **Data:** the disk is wiped on every restart, sleep and update, so demo bookings disappear.
+- **Data:** the disk is wiped on every restart, sleep and update. Set up Turso (below) and
+  bookings, accounts and the activity log come back after every restart.
 - **Speed:** 0.1 CPU and 512 MB memory. Fine for a demo; not for a busy real business.
 
 Source: <https://render.com/docs/free>.
@@ -304,9 +305,32 @@ real money.
 
 ## Keeping bookings permanently
 
-The free Render plan cannot keep files. When you sell a site to a real client, pick one:
+The free Render plan cannot keep files: everything stored is wiped whenever the site sleeps,
+restarts or updates. The site can keep a permanent copy of its database in **Turso** (hosted
+SQLite, free for up to 5 GB, no card needed). The site still runs on its own fast local copy; every
+change is also saved to Turso, and on each start the local copy is rebuilt from Turso.
 
-1. **Render paid plan + disk (simplest, ~$7/month + ~$0.25/GB):** upgrade the service to
+### Turn on Turso (free, about 5 minutes)
+1. Go to <https://turso.tech> → **Sign up** (GitHub sign-in is quickest).
+2. **Databases** → **Create database**. Name it `veloce`, pick the region nearest your Render
+   region (for Oregon, a US West region), **Create**.
+3. Open the database. Copy its **URL** (it starts with `libsql://`).
+4. **Create token** (or **Generate token**): expiry **Never**, access **Read & Write**. Copy it;
+   Turso shows it only once.
+5. Render → your service → **Environment** → **Edit** → add `TURSO_DATABASE_URL` (the URL) and
+   `TURSO_AUTH_TOKEN` (the token) → **Save, rebuild, and deploy**.
+
+Check it worked: Render → **Logs** shows `[turso] restored … row(s)` on start. Make a booking, then
+**Manual Deploy** → **Restart service**: the booking is still there.
+
+Good to know: Turso becomes the master copy. Running the site on your own computer with these two
+settings replaces your local `server/data/veloce.db` with Turso's data. A booking made in the
+minute while Render switches to a new version can miss the new version's copy; on a quiet demo
+site this is very unlikely.
+
+### Other options
+
+1. **Render paid plan + disk (~$7/month + ~$0.25/GB):** upgrade the service to
    *Starter*, add a **Disk** with mount path `/var/data`, and add the environment variable
    `DATA_DIR=/var/data`. Bookings now survive restarts and updates.
 2. **Oracle Cloud "Always Free" virtual machine (free, but more technical):** a small Linux
@@ -314,8 +338,6 @@ The free Render plan cannot keep files. When you sell a site to a real client, p
    checks (not charged), and you install Node 22 and keep the server updated yourself.
    Oracle may reclaim machines that sit almost idle for 7 days.
    <https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm>
-3. **A hosted database (e.g. Turso, free tier with no card):** keeps data outside the server,
-   but the app's database code would need changing to use it.
 
 ---
 

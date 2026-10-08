@@ -27,6 +27,10 @@ on this repository. Do not open a public issue.
   only its hash stored) and only show bookings made with the guest's Google-verified email.
   Guests who do not sign in for `RETENTION_DAYS` are forgotten.
 
+**Stored data**
+- Optionally copied to Turso (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`) over HTTPS so it survives restarts.
+  The token is a secret: keep it only in the host's environment settings, never in the repository.
+
 **Requests**
 - CSRF: state-changing admin calls must come from the site's own origin and carry JSON.
 - Rate limits on every API, per IP, plus a site-wide cap on new bookings.

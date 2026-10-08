@@ -2,6 +2,7 @@
 // In production a weak or missing admin password stops the server before it listens.
 import { fileURLToPath } from 'node:url'
 import { parseHash } from './auth.js'
+import { tursoHttpUrl } from './replica.js'
 import { EMAIL_PROVIDERS } from './mailer.js'
 import { paymentSettings } from './payments.js'
 
@@ -91,6 +92,8 @@ export function loadConfig(env = process.env, overrides = {}) {
     // Links in emails. Render sets RENDER_EXTERNAL_URL by itself; SITE_URL wins (e.g. a custom domain).
     // Never taken from the request's Host header, which a visitor controls.
     siteUrl: (overrides.siteUrl ?? env.SITE_URL ?? env.RENDER_EXTERNAL_URL)?.trim() || null,
+    // Durable copy of the database in Turso (see replica.js), or null to keep it on local disk only.
+    turso: tursoSettings(env, overrides),
     // Tests replace the call to Google's token endpoint.
     fetch: overrides.fetch ?? globalThis.fetch,
     log: overrides.log ?? ((line) => console.log(line)),
@@ -124,4 +127,19 @@ function emailSettings(env, overrides) {
     },
     emailProblem: null,
   }
+}
+
+/** TURSO_DATABASE_URL + TURSO_AUTH_TOKEN: both or neither. */
+function tursoSettings(env, overrides) {
+  if (overrides.turso !== undefined) return overrides.turso
+  const url = env.TURSO_DATABASE_URL?.trim()
+  const token = env.TURSO_AUTH_TOKEN?.trim()
+  if (!url && !token) return null
+  if (!url || !token) throw new ConfigError('Turso needs both TURSO_DATABASE_URL and TURSO_AUTH_TOKEN. Set both, or neither.')
+  try {
+    tursoHttpUrl(url)
+  } catch {
+    throw new ConfigError('TURSO_DATABASE_URL should look like libsql://your-database-name.turso.io')
+  }
+  return { url, token }
 }

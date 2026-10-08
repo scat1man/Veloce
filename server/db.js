@@ -3,11 +3,17 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import { replicate } from './replica.js'
 
-export function openDb(dataDir) {
+/**
+ * `remote` (a Turso client, see replica.js) is optional: with it, every change is also saved
+ * to Turso so the data survives hosts that wipe their disk on restart.
+ */
+export function openDb(dataDir, { remote, log } = {}) {
   mkdirSync(dataDir, { recursive: true })
-  const db = new DatabaseSync(join(dataDir, 'veloce.db'))
-  db.exec('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 3000;')
+  const local = new DatabaseSync(join(dataDir, 'veloce.db'))
+  local.exec('PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 3000;')
+  const db = remote ? replicate(local, remote, { log }) : local
 
   // Runs on every start; IF NOT EXISTS makes it a no-op once the tables are there.
   db.exec(`

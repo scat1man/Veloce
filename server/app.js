@@ -14,6 +14,7 @@ import { createBookingStore, LIMITS, newReference, validate } from './bookings.j
 import { cities, vehicles } from './catalog.js'
 import { loadConfig } from './config.js'
 import { openDb } from './db.js'
+import { createTursoClient } from './replica.js'
 import { bookingCancelled, bookingConfirmed, bookingReceived, depositReceived, depositRefunded, ownerNewBooking } from './emails.js'
 import { createMailer } from './mailer.js'
 import { CALLBACK_PATH, createGoogleAuth, safeReturnPath } from './google.js'
@@ -50,12 +51,16 @@ const isString = (v) => typeof v === 'string'
 /**
  * Builds the Express app. `options` are config overrides (see config.js), e.g.
  * { env: 'production', adminPassword, dataDir, limits }. Throws ConfigError on unsafe settings.
- * Returns { app, config, close } — close() stops timers and closes the database.
+ * Returns { app, config, close, flush } — close() stops timers and closes the database; flush() waits
+ * until every change has reached Turso (a no-op without it).
  */
 export function createApp(options = {}) {
   const config = loadConfig(options.processEnv ?? process.env, options)
   const { log } = config
-  const db = openDb(config.dataDir)
+  // With Turso configured, every change is also saved there (see replica.js); index.js restores
+  // the local file from Turso before the app is built.
+  const remote = config.turso ? createTursoClient({ ...config.turso, fetchImpl: config.fetch }) : null
+  const db = openDb(config.dataDir, { remote, log })
   const activity = createActivityLog(db)
   // Every audit line goes to the host's logs; staff actions (admin.*) are also kept in the
   // database so the console's Activity page and each booking's history can show them.
@@ -671,6 +676,7 @@ export function createApp(options = {}) {
       timers.forEach(clearInterval)
       db.close()
     },
+    flush: () => db.flush?.() ?? Promise.resolve(true),
   }
 }
 
