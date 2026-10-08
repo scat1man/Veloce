@@ -16,7 +16,8 @@ export const CSP = [
   "media-src 'self' blob:",
   "manifest-src 'self'",
   // three.js loaders fetch textures embedded in .glb files as blob:/data: URLs.
-  "connect-src 'self' blob: data:",
+  // The pickup map fetches its vector tiles and label fonts from OpenFreeMap.
+  "connect-src 'self' blob: data: https://tiles.openfreemap.org",
   "frame-src 'none'",
   "object-src 'none'",
   "base-uri 'self'",

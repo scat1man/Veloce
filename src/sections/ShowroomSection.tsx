@@ -10,6 +10,7 @@ import { SmartImage } from '../components/SmartImage'
 import { VehicleDetail } from '../components/VehicleDetail'
 import { vehicles, type Vehicle } from '../data/vehicles'
 import { useStageUI } from '../three/store'
+import { SHOWROOM_EVENT, type ShowroomRequest } from './showroomLink'
 
 const cityOf = (v: Vehicle) => v.location.split(',')[0]
 
@@ -55,6 +56,17 @@ export function ShowroomSection() {
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
+
+  // Other sections (the pickup map) can filter the floor to a city or open a car.
+  useEffect(() => {
+    const onRequest = (e: Event) => {
+      const { city: c, carId } = (e as CustomEvent<ShowroomRequest>).detail
+      if (c && cities.includes(c)) setCity(c)
+      if (carId && vehicles.some((v) => v.id === carId)) open(carId)
+    }
+    window.addEventListener(SHOWROOM_EVENT, onRequest)
+    return () => window.removeEventListener(SHOWROOM_EVENT, onRequest)
+  }, [open])
 
   return (
     <section id="showroom" data-nav-theme="light" aria-labelledby="showroom-title" className="relative bg-paper text-ink">

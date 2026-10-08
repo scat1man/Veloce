@@ -4,6 +4,7 @@ import { RevealText } from '../animations/RevealText'
 import { duration, ease, viewport } from '../animations/tokens'
 import { fadeUp, maskLine, stagger } from '../animations/variants'
 import { Button } from '../components/Button'
+import { PickupPoints } from '../components/pickup/PickupPoints'
 import { SmartImage } from '../components/SmartImage'
 import { images, type ImageKey } from '../data/images'
 import { locations, type Location } from '../data/locations'
@@ -60,6 +61,7 @@ export function LocationsSection() {
   const fine = useFinePointer()
   const [activeId, setActiveId] = useState(locations[0].id)
   const [openId, setOpenId] = useState<string | null>(null)
+  const [pickupId, setPickupId] = useState<string | null>(null)
   const active = locations.find((l) => l.id === activeId)!
   const now = useNow()
 
@@ -142,6 +144,8 @@ export function LocationsSection() {
             </div>
           )}
         </div>
+
+        <PickupPoints selectedId={pickupId} onSelect={setPickupId} />
       </div>
     </section>
   )

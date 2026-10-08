@@ -305,3 +305,117 @@ h2,
 h3 {
   text-wrap: balance;
 }
+
+/* Pickup map (components/pickup/PickupMap.tsx) */
+.pickup-map {
+  background: #141415;
+  font-family: inherit;
+}
+.pickup-map .maplibregl-canvas:focus-visible {
+  outline: 2px solid var(--color-bone);
+  outline-offset: -2px;
+}
+.pickup-pin {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--color-bone);
+}
+.pickup-pin:focus-visible {
+  outline: 2px solid var(--color-bone);
+  outline-offset: 4px;
+  border-radius: 980px;
+}
+.pickup-pin-dot {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-bone);
+  box-shadow: 0 0 0 4px rgb(244 243 240 / 0.16);
+  transition: box-shadow 0.4s var(--ease-out-expo), transform 0.4s var(--ease-out-expo);
+}
+.pickup-pin-name {
+  border-radius: 980px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+  background: rgb(11 11 12 / 0.78);
+  color: rgb(244 243 240 / 0.78);
+  backdrop-filter: blur(8px);
+  transition: background-color 0.3s, color 0.3s;
+}
+.pickup-pin:hover .pickup-pin-name {
+  color: var(--color-bone);
+}
+.pickup-pin[data-on='true'] .pickup-pin-dot {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 6px rgb(244 243 240 / 0.22), 0 0 0 14px rgb(244 243 240 / 0.08);
+}
+.pickup-pin[data-on='true'] .pickup-pin-name {
+  background: var(--color-bone);
+  color: var(--color-ink);
+}
+/* MapLibre's own controls, quieted to match */
+.pickup-map .maplibregl-ctrl-group {
+  background: rgb(11 11 12 / 0.78);
+  border-radius: 12px;
+  box-shadow: none;
+  backdrop-filter: blur(8px);
+}
+.pickup-map .maplibregl-ctrl-group button + button {
+  border-top: 0;
+}
+.pickup-map .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1);
+  opacity: 0.8;
+}
+.pickup-map .maplibregl-ctrl-top-right {
+  margin: 0.75rem;
+}
+.pickup-map .maplibregl-ctrl.maplibregl-ctrl-attrib,
+.pickup-map .maplibregl-ctrl-attrib.maplibregl-compact,
+.pickup-map .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  background: rgb(11 11 12 / 0.7);
+  color: var(--color-stone);
+  font-size: 0.6875rem;
+}
+.pickup-map .maplibregl-ctrl-attrib a {
+  color: inherit;
+}
+.pickup-map .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
+  opacity: 0.6;
+}
+.pickup-map .maplibregl-ctrl-attrib.maplibregl-compact {
+  border-radius: 12px;
+}
+.pickup-map .maplibregl-cooperative-gesture-screen {
+  background: rgb(11 11 12 / 0.55);
+  color: var(--color-bone);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+/* On a phone the five names would collide: show only the chosen one. */
+.pickup-map {
+  container-type: inline-size;
+}
+@container (max-width: 639px) {
+  .pickup-pin[data-on='false'] .pickup-pin-name {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pickup-pin-dot,
+  .pickup-pin-name {
+    transition: none;
+  }
+}
