@@ -20,6 +20,12 @@ const server = app.listen(config.port, () => {
   if (config.usingDevPassword)
     console.warn(`WARNING: admin password is the demo default "veloce". Set ADMIN_PASSWORD before putting this online (production refuses to start without it).`)
 })
+// Slow-client protection: a connection that dribbles its headers or body is cut off
+// instead of holding a socket open for minutes.
+server.headersTimeout = 20_000
+server.requestTimeout = 30_000
+server.keepAliveTimeout = 65_000 // a little above the proxy's idle timeout, so it never reuses a closed socket
+server.maxHeadersCount = 100
 
 const shutdown = () => {
   server.close(() => {

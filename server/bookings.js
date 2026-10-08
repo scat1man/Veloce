@@ -3,7 +3,9 @@ import { randomInt } from 'node:crypto'
 import { cities, vehicles } from './catalog.js'
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+// The HTML standard's own rule for <input type="email">, plus a dot in the domain:
+// no spaces, quotes, angle brackets or other characters that could break out of markup or a mail header.
+const EMAIL = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/
 // Letters and digits people do not confuse when reading a reference aloud (no 0/O, 1/I/L).
 const REF_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 const REF_LENGTH = 8
@@ -18,9 +20,11 @@ const isString = (v) => typeof v === 'string'
 // Rejects impossible dates such as 2026-02-31, which Date.parse would quietly roll over.
 const isRealDate = (v) => isString(v) && DATE.test(v) && !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().startsWith(v)
 // eslint-disable-next-line no-control-regex
-const CONTROL = /[\u0000-\u001f\u007f]/
+const CONTROL = /[\u0000-\u001f\u007f-\u009f\u200b\u200e\u200f\u202a-\u202e\u2060-\u2069\ufeff]/
 // eslint-disable-next-line no-control-regex
-const NOTE_CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/
+const NOTE_CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/
+// Names are shown to staff and pasted into emails: angle brackets have no place in one.
+const NAME_FORBIDDEN = /[<>{}[\]\\|`$]/
 
 /** Returns an error message, or null when the request is acceptable. Only plain strings are accepted. */
 export function validate(input) {
@@ -37,8 +41,8 @@ export function validate(input) {
   if (dayDiff(todayUtc(), pickup) > MAX_AHEAD_DAYS) return 'Pick-up date is too far ahead.'
   if (returnDate <= pickup) return 'Return must be after pick-up.'
   if (dayDiff(pickup, returnDate) > MAX_DAYS) return `Bookings are limited to ${MAX_DAYS} days.`
-  if (!isString(name) || !name.trim() || name.length > LIMITS.name || CONTROL.test(name)) return 'Please enter your name.'
-  if (!isString(email) || email.length > LIMITS.email || !EMAIL.test(email.trim())) return 'Please enter a valid email.'
+  if (!isString(name) || !name.trim() || name.length > LIMITS.name || CONTROL.test(name) || NAME_FORBIDDEN.test(name)) return 'Please enter your name.'
+  if (!isString(email) || email.length > LIMITS.email || !EMAIL.test(email.trim()) || email.trim().split('@')[0].length > 64) return 'Please enter a valid email.'
   return null
 }
 

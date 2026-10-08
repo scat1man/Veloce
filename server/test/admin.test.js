@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { after, before, describe, test } from 'node:test'
 import { PASSWORD, booking, postJson, start } from './helpers.js'
 
-const cookieFrom = (res) => res.headers.getSetCookie().find((c) => c.startsWith('veloce_admin='))
+// Over HTTPS the cookie carries the __Host- prefix.
+const cookieFrom = (res) => res.headers.getSetCookie().find((c) => /^(__Host-)?veloce_admin=/.test(c))
 
 describe('admin', () => {
   let srv, origin, cookie
@@ -209,6 +210,8 @@ describe('admin behind an HTTPS proxy (production)', () => {
     const res = await postJson(`${srv.base}/api/admin/login`, { password: PASSWORD }, { Origin: srv.base, 'X-Forwarded-Proto': 'https' })
     assert.equal(res.status, 200)
     assert.match(cookieFrom(res), /Secure/)
+    assert.match(cookieFrom(res), /^__Host-veloce_admin=/)
+    assert.doesNotMatch(cookieFrom(res), /Domain=/i)
     assert.match(res.headers.get('strict-transport-security'), /max-age=/)
   })
 

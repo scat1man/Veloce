@@ -96,8 +96,12 @@ describe('public booking API', () => {
 
   test('security headers are on every response; no CORS, no x-powered-by', async () => {
     const res = await fetch(`${srv.base}/api/health`, { headers: { Origin: 'https://evil.example' } })
-    assert.match(res.headers.get('content-security-policy'), /default-src 'self'/)
+    // API answers get the strictest policy: they are data, never pages.
+    assert.match(res.headers.get('content-security-policy'), /default-src 'none'/)
     assert.match(res.headers.get('content-security-policy'), /frame-ancestors 'none'/)
+    const page = await fetch(`${srv.base}/admin/login`)
+    assert.match(page.headers.get('content-security-policy'), /default-src 'none'; script-src 'self'/)
+    assert.match(page.headers.get('content-security-policy'), /script-src-attr 'none'/)
     assert.equal(res.headers.get('x-content-type-options'), 'nosniff')
     assert.equal(res.headers.get('referrer-policy'), 'strict-origin-when-cross-origin')
     assert.equal(res.headers.get('cross-origin-opener-policy'), 'same-origin')

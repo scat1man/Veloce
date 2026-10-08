@@ -12,7 +12,9 @@
     "prod": "npm run build && npm start",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "node --test --disable-warning=ExperimentalWarning \"server/test/*.test.js\""
+    "test": "node --test --disable-warning=ExperimentalWarning \"server/test/*.test.js\"",
+    "hash-password": "node scripts/hash-password.js",
+    "audit": "npm audit --omit=dev && npm audit signatures"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

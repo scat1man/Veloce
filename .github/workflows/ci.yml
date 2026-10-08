@@ -1,0 +1,35 @@
+# Runs on every push and pull request: install exactly what the lockfile pins (no install
+# scripts), check for known vulnerabilities and tampered packages, then test and build.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --include=dev --ignore-scripts
+      - name: Known vulnerabilities in what the server ships
+        run: npm audit --omit=dev --audit-level=high
+      - name: Registry signatures of every installed package
+        run: npm audit signatures
+      - run: npm test
+      - run: npm run build

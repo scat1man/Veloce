@@ -5,6 +5,8 @@ export const CSP = [
   "default-src 'self'",
   // 'wasm-unsafe-eval' lets the DRACO decoder compile its WebAssembly; nothing else may eval.
   "script-src 'self' 'wasm-unsafe-eval'",
+  // No inline event handlers (onclick=...), even if markup were ever injected.
+  "script-src-attr 'none'",
   // three.js DRACOLoader runs the decoder in a worker built from a blob: URL.
   "worker-src 'self' blob:",
   // Motion animates through inline style attributes; Google Fonts serves its CSS from googleapis.
@@ -12,25 +14,60 @@ export const CSP = [
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob:",
   "media-src 'self' blob:",
+  "manifest-src 'self'",
   // three.js loaders fetch textures embedded in .glb files as blob:/data: URLs.
   "connect-src 'self' blob: data:",
+  "frame-src 'none'",
   "object-src 'none'",
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "form-action 'self'",
 ].join('; ')
 
+// The staff pages need far less than the 3D showroom: no WebAssembly, workers, blobs or media.
+export const ADMIN_CSP = [
+  "default-src 'none'",
+  "script-src 'self'",
+  "script-src-attr 'none'",
+  // The console sizes chart bars with inline style attributes.
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src https://fonts.gstatic.com",
+  "img-src 'self' data:",
+  "connect-src 'self'",
+  "base-uri 'none'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ')
+
+// API answers are data, never pages: if one is ever opened directly, nothing in it may run.
+export const API_CSP = "default-src 'none'; frame-ancestors 'none'; sandbox"
+
+const PERMISSIONS = [
+  'accelerometer', 'browsing-topics', 'camera', 'display-capture', 'geolocation', 'gyroscope',
+  'hid', 'idle-detection', 'magnetometer', 'microphone', 'midi', 'payment', 'publickey-credentials-get', 'serial', 'usb', 'xr-spatial-tracking',
+]
+  .map((feature) => `${feature}=()`)
+  .join(', ')
+
+const cspFor = (path) => (path.startsWith('/api/') ? API_CSP : path === '/admin' || path.startsWith('/admin/') ? ADMIN_CSP : CSP)
+
 /** Headers on every response. HSTS only when the visitor really is on HTTPS in production. */
 export function securityHeaders({ production }) {
   return (req, res, next) => {
-    res.setHeader('Content-Security-Policy', CSP)
+    const secure = production && req.secure
+    const csp = cspFor(req.path)
+    // Once on HTTPS, any stray http:// sub-resource is fetched over HTTPS instead.
+    res.setHeader('Content-Security-Policy', secure && csp !== API_CSP ? `${csp}; upgrade-insecure-requests` : csp)
     res.setHeader('X-Content-Type-Options', 'nosniff')
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()')
+    res.setHeader('Permissions-Policy', PERMISSIONS)
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
     res.setHeader('Cross-Origin-Resource-Policy', 'same-origin')
+    res.setHeader('Origin-Agent-Cluster', '?1')
     res.setHeader('X-Frame-Options', 'DENY')
-    if (production && req.secure) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    res.setHeader('X-Permitted-Cross-Domain-Policies', 'none')
+    res.setHeader('X-DNS-Prefetch-Control', 'off')
+    if (secure) res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains')
     next()
   }
 }

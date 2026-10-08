@@ -20,7 +20,15 @@ const DEFAULT_LIMITS = {
   lookup: { limit: 10, windowMs: 10 * MINUTE },
   availability: { limit: 60, windowMs: MINUTE },
   loginFailures: { limit: 5, windowMs: 15 * MINUTE },
+  // Site-wide caps, whatever the IP: a botnet spread over many addresses still hits these.
+  loginFailuresGlobal: { limit: 30, windowMs: 15 * MINUTE },
+  bookingsGlobal: { limit: 60, windowMs: 60 * MINUTE },
+  // Every API call from one IP, as a ceiling against scripted floods.
+  api: { limit: 300, windowMs: MINUTE },
 }
+const EVERYONE = '*'
+const FAILED_LOGIN_DELAY_MS = 400
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const here = (path) => fileURLToPath(new URL(path, import.meta.url))
 const isString = (v) => typeof v === 'string'
 
@@ -50,7 +58,7 @@ export function createApp(options = {}) {
     }
   }
   const bookings = createBookingStore(db)
-  const sessions = createSessionStore(db, { hours: config.sessionHours })
+  const sessions = createSessionStore(db, { hours: config.sessionHours, secret: config.adminSecret })
 
   const limits = { ...DEFAULT_LIMITS, ...config.limits }
   const limiters = Object.fromEntries(Object.entries(limits).map(([name, opts]) => [name, new RateLimiter(opts)]))
@@ -87,13 +95,27 @@ export function createApp(options = {}) {
     })
   }
   app.use(securityHeaders(config))
+  // Nothing whose name starts with a dot is ever served (.env, .git, editor files), and scanners
+  // probing for them get a plain 404 instead of the site's page. /.well-known stays open.
+  app.use((req, res, next) => {
+    let path
+    try {
+      path = decodeURIComponent(req.path)
+    } catch {
+      return res.status(400).type('text').send('Bad request.')
+    }
+    if (/(^|[\\/])\.(?!well-known(\/|$))/.test(path)) return res.status(404).type('text').send('Not found.')
+    next()
+  })
   // Gzip every text response (JS, CSS, HTML, JSON): the main 3D bundle drops from 1.2 MB to about 370 KB.
   app.use(compression())
-  app.use(express.json({ limit: '10kb' }))
   app.use(['/api', '/admin'], (_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store')
     next()
   })
+  app.use('/api', rateLimit(limiters.api))
+  // Only real JSON objects or arrays, at most 10 KB; anything else is never parsed.
+  app.use(express.json({ limit: '10kb', strict: true, type: 'application/json' }))
 
   // ---- Public API: what the website calls ----
 
@@ -120,6 +142,11 @@ export function createApp(options = {}) {
     }
     const error = validate(input)
     if (error) return res.status(400).json({ error })
+    const site = limiters.bookingsGlobal.hit(EVERYONE)
+    if (!site.ok) {
+      audit('spam.bookings_capped', { ip: req.ip })
+      return tooMany(res, site.retryAfter, 'We are receiving an unusual number of requests. Please try again a little later.')
+    }
     // The form checks availability too, but only the server's answer counts:
     // two people can submit the same car and dates at the same moment.
     if (input.vehicleId && !bookings.isAvailable(input.vehicleId, input.pickup, input.returnDate))
@@ -172,16 +199,21 @@ export function createApp(options = {}) {
   app.use('/admin/console', express.static(here('./console/'), { index: false, maxAge: 0, fallthrough: false }))
   app.use('/admin', (_req, res) => res.status(404).type('text').send('Not found.'))
 
-  app.post('/api/admin/login', guardWrite, (req, res) => {
+  app.post('/api/admin/login', guardWrite, async (req, res) => {
     const ip = req.ip ?? 'unknown'
-    const wait = limiters.loginFailures.blocked(ip)
+    const wait = limiters.loginFailures.blocked(ip) ?? limiters.loginFailuresGlobal.blocked(EVERYONE)
     if (wait) {
       audit('admin.login_blocked', { ip })
       return tooMany(res, wait, 'Too many failed sign-ins. Try again later.')
     }
-    if (!passwordMatches(req.body?.password, config.adminPassword)) {
+    if (!passwordMatches(req.body?.password, config.adminSecret)) {
       limiters.loginFailures.hit(ip)
+      limiters.loginFailuresGlobal.hit(EVERYONE)
+      // Logged once, on the failure that locks sign-in for everyone until the window ends.
+      if (limiters.loginFailuresGlobal.blocked(EVERYONE)) audit('admin.login_locked', { ip })
       audit('admin.login_failed', { ip })
+      // A short pause makes every wrong guess slower, on top of the counters above.
+      await sleep(FAILED_LOGIN_DELAY_MS)
       return res.status(401).json({ error: 'Wrong password.' })
     }
     limiters.loginFailures.reset(ip)
