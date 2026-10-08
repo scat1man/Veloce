@@ -27,7 +27,7 @@ export function createAccountStore(db) {
   const purgeCustomers = db.prepare("DELETE FROM customers WHERE last_login_at < datetime('now', ?)")
   const bookingsFor = db.prepare(`
     SELECT reference, vehicle_id, city_id, pickup, return_date, status, created_at FROM bookings
-    WHERE email = ? ORDER BY pickup DESC, id DESC LIMIT 50
+    WHERE customer_id = ? OR email = ? ORDER BY pickup DESC, id DESC LIMIT 50
   `)
 
   return {
@@ -48,8 +48,8 @@ export function createAccountStore(db) {
     signOut(id) {
       if (typeof id === 'string' && id.length <= 100) removeSession.run(hash(id))
     },
-    /** Bookings made with this (Google-verified) email, signed in or not when they were made. */
-    bookings: (email) => bookingsFor.all(email),
+    /** Bookings made while signed in, plus any made with the guest's Google-verified email. */
+    bookings: (customer) => bookingsFor.all(customer.id, customer.email),
     purge(days) {
       const expired = Number(purgeSessions.run(Date.now()).changes)
       const forgotten = Number(purgeCustomers.run(`-${Math.floor(days)} days`).changes)

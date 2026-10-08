@@ -115,6 +115,11 @@ describe('Sign in with Google', () => {
     assert.equal(list[0].status, 'pending')
     assert.equal(list[0].email, undefined)
 
+    // A booking made while signed in belongs to the account even when another email was typed.
+    assert.equal((await postJson(`${srv.base}/api/bookings`, booking({ email: 'work@company.com', vehicleId: 'revuelto' }), { Cookie: guest })).status, 201)
+    const after = await (await fetch(`${srv.base}/api/account/bookings`, { headers: { Cookie: guest } })).json()
+    assert.deepEqual(after.map((b) => b.vehicle).sort(), ['Ferrari SF90 Stradale', 'Lamborghini Revuelto'])
+
     // Signing out needs a same-origin JSON request, like every other write.
     assert.equal((await postJson(`${srv.base}/api/account/logout`, {}, { Cookie: guest, Origin: 'https://evil.example' })).status, 403)
     assert.equal((await postJson(`${srv.base}/api/account/logout`, {}, { Cookie: guest, Origin: srv.base })).status, 200)

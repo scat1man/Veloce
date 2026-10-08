@@ -255,7 +255,7 @@ export function createApp(options = {}) {
     // two people can submit the same car and dates at the same moment.
     if (input.vehicleId && !bookings.isAvailable(input.vehicleId, input.pickup, input.returnDate))
       return res.status(409).json({ error: 'That car is already booked for those dates. Try other dates or let us advise.' })
-    const { note: _note, updatedAt: _updatedAt, ...created } = bookings.createBooking(input)
+    const { note: _note, updatedAt: _updatedAt, ...created } = bookings.createBooking(input, guest(req)?.id ?? null)
     trackBooking(req, created.vehicleId)
     res.status(201).json(created)
     emailGuest(created, bookingReceived, 'request-received')
@@ -608,12 +608,12 @@ export function createApp(options = {}) {
     res.json({ google: Boolean(google), user: me ? { name: me.name, email: me.email } : null })
   })
 
-  // Every booking made with the guest's Google-verified email, including ones made before they signed in.
+  // Bookings made while signed in (whatever email was typed), plus any made with the guest's Google-verified email.
   app.get('/api/account/bookings', (req, res) => {
     const me = guest(req)
     if (!me) return res.status(401).json({ error: 'Please sign in.' })
     res.json(
-      accounts.bookings(me.email).map((row) => ({
+      accounts.bookings(me).map((row) => ({
         reference: row.reference,
         vehicle: row.vehicle_id ? (vehicles[row.vehicle_id] ?? null) : null,
         city: cities[row.city_id] ?? row.city_id,

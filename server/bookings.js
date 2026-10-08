@@ -66,8 +66,8 @@ export function createBookingStore(db) {
     LIMIT 1
   `)
   const insert = db.prepare(`
-    INSERT INTO bookings (reference, vehicle_id, city_id, pickup, return_date, name, email)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO bookings (reference, vehicle_id, city_id, pickup, return_date, name, email, customer_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `)
   const byReference = db.prepare('SELECT * FROM bookings WHERE reference = ?')
   const byReferenceAndEmail = db.prepare('SELECT * FROM bookings WHERE reference = ? AND email = ?')
@@ -84,12 +84,13 @@ export function createBookingStore(db) {
     isAvailable,
     findBooking,
 
-    createBooking({ vehicleId, cityId, pickup, returnDate, name, email }) {
+    /** `customerId` links the booking to a signed-in guest's account, whatever email they typed. */
+    createBooking({ vehicleId, cityId, pickup, returnDate, name, email }, customerId = null) {
       // 31^8 ≈ 850 billion codes, so a clash is near impossible; retry anyway rather than fail.
       for (let attempt = 0; ; attempt++) {
         const reference = newReference()
         try {
-          insert.run(reference, vehicleId || null, cityId, pickup, returnDate, name.trim(), email.trim().toLowerCase())
+          insert.run(reference, vehicleId || null, cityId, pickup, returnDate, name.trim(), email.trim().toLowerCase(), customerId)
           return findBooking(reference)
         } catch (err) {
           if (attempt >= 4 || !/UNIQUE/i.test(String(err?.message))) throw err
