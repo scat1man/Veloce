@@ -146,6 +146,44 @@ export function bookingCancelled(b, { siteUrl, canReply } = {}) {
   }
 }
 
+/** To the guest, when their deposit is paid. `amount` is already formatted, e.g. "500.00 USD". */
+export function depositReceived(b, { siteUrl, amount } = {}) {
+  const manage = link(siteUrl, '/#manage')
+  return {
+    subject: `Deposit received for ${b.reference}`,
+    ...layout({
+      preheader: `${amount} received. Thank you.`,
+      headline: 'Deposit received.',
+      lines: [
+        `Thank you, ${firstName(b.name)}. We have received your deposit of ${amount} for ${formatDate(b.pickup)}.`,
+        'Keep this email as your receipt. Stripe may also send you its own.',
+      ],
+      details: [['Amount', amount], ...guestDetails(b), ...(b.payment?.paymentId ? [['Payment', b.payment.paymentId]] : [])],
+      action: manage && { label: 'View booking', href: manage },
+      footnote: NOT_YOU,
+    }),
+  }
+}
+
+/** To the guest, when their deposit is refunded in full. */
+export function depositRefunded(b, { siteUrl, amount } = {}) {
+  const manage = link(siteUrl, '/#manage')
+  return {
+    subject: `Deposit refunded for ${b.reference}`,
+    ...layout({
+      preheader: `${amount} is on its way back to you.`,
+      headline: 'Your deposit is on its way back.',
+      lines: [
+        `${firstName(b.name)}, we have refunded your deposit of ${amount}.`,
+        'Most banks show it within 5 to 10 business days, on the card you paid with.',
+      ],
+      details: [['Amount', amount], ...guestDetails(b)],
+      action: manage && { label: 'View booking', href: manage },
+      footnote: NOT_YOU,
+    }),
+  }
+}
+
 /** To the owner, for every new request. */
 export function ownerNewBooking(b, { siteUrl } = {}) {
   const admin = link(siteUrl, '/admin')

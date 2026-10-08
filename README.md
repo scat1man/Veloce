@@ -81,7 +81,7 @@ server/
   auth.js       admin sign-in, sessions, CSRF checks
   bookings.js   validation, overlap check, database queries
   mailer.js     sends email over Brevo's or Resend's HTTPS API (off until a key is set)
-  emails.js     the booking emails: request received, confirmed, declined, new request for the owner
+  emails.js     the booking emails: request received, confirmed, declined, deposit receipt and refund, new request for the owner
   db.js         opens $DATA_DIR/veloce.db, creates tables, retention clean-up
   catalog.js    bookable car and city ids (mirror of src/data)
   admin.html, login.html, public/   concierge pages at /admin

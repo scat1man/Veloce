@@ -14,7 +14,7 @@ import { createBookingStore, LIMITS, newReference, validate } from './bookings.j
 import { cities, vehicles } from './catalog.js'
 import { loadConfig } from './config.js'
 import { openDb } from './db.js'
-import { bookingCancelled, bookingConfirmed, bookingReceived, ownerNewBooking } from './emails.js'
+import { bookingCancelled, bookingConfirmed, bookingReceived, depositReceived, depositRefunded, ownerNewBooking } from './emails.js'
 import { createMailer } from './mailer.js'
 import { CALLBACK_PATH, createGoogleAuth, safeReturnPath } from './google.js'
 import { parseCookies, RateLimiter, rateLimit, sameOrigin, securityHeaders, tooMany } from './security.js'
@@ -113,6 +113,14 @@ export function createApp(options = {}) {
   const emailGuest = (booking, template, tag) => {
     if (!limiters.emailRecipient.hit(booking.email).ok) return audit('email.recipient_capped', { reference: booking.reference })
     sendEmail(booking.email, template(booking, emailOptions), `${tag} ${booking.reference}`)
+  }
+  // Deposit receipts. These fire once per booking, only when Stripe is set up as well.
+  for (const [event, template, tag] of [['payment.received', depositReceived, 'deposit-received'], ['payment.refunded', depositRefunded, 'deposit-refunded']]) {
+    events.on(event, (booking) => {
+      if (!booking?.payment?.amount) return
+      const amount = formatMoney(booking.payment.amount, booking.payment.currency)
+      sendEmail(booking.email, template(booking, { ...emailOptions, amount }), `${tag} ${booking.reference}`)
+    })
   }
 
   // ---- Housekeeping: forget old bookings and expired sessions, at start and once a day ----

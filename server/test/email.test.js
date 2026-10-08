@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { after, before, describe, test } from 'node:test'
 import { loadConfig } from '../config.js'
-import { bookingCancelled, bookingConfirmed, bookingReceived, ownerNewBooking } from '../emails.js'
+import { bookingCancelled, bookingConfirmed, bookingReceived, depositReceived, depositRefunded, ownerNewBooking } from '../emails.js'
 import { createMailer } from '../mailer.js'
 import { PASSWORD, booking, isoDay, postJson, start } from './helpers.js'
 
@@ -78,6 +78,20 @@ describe('booking emails', () => {
     assert.equal(mailer.sent.filter((m) => m.to === 'owner@veloce.test').length, 3)
   })
 
+  test('a paid or refunded deposit emails the guest a receipt', async () => {
+    mailer.sent.length = 0
+    const paid = { ...booking(), reference: 'VLC-PAIDPAID', email: 'payer@example.com', vehicle: 'McLaren 750S', city: 'Miami, FL',
+      payment: { status: 'paid', amount: 50000, currency: 'USD', paymentId: 'pi_123', paidAt: '2026-10-08 06:00:00' } }
+    srv.events.emit('payment.received', paid)
+    srv.events.emit('payment.refunded', { ...paid, payment: { ...paid.payment, status: 'refunded' } })
+    srv.events.emit('payment.received', { ...paid, payment: { status: 'none', amount: null, currency: null } })
+    await settle()
+    assert.deepEqual(mailer.sent.map((m) => [m.to, m.tag]), [['payer@example.com', 'deposit-received VLC-PAIDPAID'], ['payer@example.com', 'deposit-refunded VLC-PAIDPAID']])
+    assert.match(mailer.sent[0].text, /Amount: 500\.00 USD/)
+    assert.match(mailer.sent[0].text, /Payment: pi_123/)
+    assert.match(mailer.sent[1].subject, /refunded/)
+  })
+
   test('the honeypot sends nothing', async () => {
     mailer.sent.length = 0
     assert.equal((await postJson(`${srv.base}/api/bookings`, booking({ website: 'spam.example' }))).status, 201)
@@ -98,7 +112,7 @@ describe('email templates', () => {
   }
 
   test('guest text is escaped in every email', () => {
-    for (const template of [bookingReceived, bookingConfirmed, bookingCancelled, ownerNewBooking]) {
+    for (const template of [bookingReceived, bookingConfirmed, bookingCancelled, ownerNewBooking, depositReceived, depositRefunded]) {
       const { html } = template(b, { siteUrl: 'https://veloce.example' })
       assert.doesNotMatch(html, /<img/)
       assert.match(html, /&lt;img|Eve,|Eve\b/)
