@@ -2,28 +2,33 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="robots" content="noindex, nofollow" />
 <meta name="referrer" content="no-referrer" />
-<title>Velocé Concierge · Sign in</title>
+<meta name="theme-color" content="#000000" />
+<title>Sign in · Velocé Concierge</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..600&display=swap" />
 <link rel="stylesheet" href="/admin/login.css" />
 <script src="/admin/login.js" defer></script>
 </head>
 <body>
-<main class="card">
+<main>
   <p class="wordmark">VELOCÉ</p>
   <h1>Concierge</h1>
-  <p class="sub">Staff sign-in. This area is not part of the public website.</p>
+  <p class="sub">Sign in to manage bookings and the fleet.</p>
   <form id="login" novalidate>
-    <label for="password">Password</label>
-    <input type="password" name="password" id="password" autocomplete="current-password" required autofocus maxlength="1024" />
+    <label for="password" class="sr">Password</label>
+    <div class="field">
+      <input type="password" name="password" id="password" placeholder="Password" autocomplete="current-password" required autofocus maxlength="1024" aria-describedby="error caps" />
+      <button type="button" class="reveal" id="reveal" aria-label="Show password" aria-pressed="false">Show</button>
+    </div>
+    <p id="caps" class="caps" hidden>Caps Lock is on</p>
     <p id="error" role="alert"></p>
-    <button type="submit">Sign in</button>
+    <button type="submit" class="submit">Sign in</button>
   </form>
 </main>
-<p class="foot">Sessions end after a few hours. Too many wrong passwords lock sign-in for 15 minutes.</p>
+<p class="foot">Staff only. Sessions end after a few hours, and five wrong passwords pause sign-in for 15 minutes.</p>
 </body>
 </html>

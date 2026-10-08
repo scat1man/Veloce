@@ -2,147 +2,201 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="robots" content="noindex, nofollow" />
 <meta name="referrer" content="no-referrer" />
+<meta name="theme-color" content="#000000" />
 <title>Velocé Concierge</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..600&display=swap" />
 <link rel="stylesheet" href="/admin/console/console.css" />
 <script src="/admin/console/console.js" type="module"></script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <div class="shell">
-  <aside class="side">
+  <aside class="side" aria-label="Concierge">
     <div class="brand">
       <span class="wordmark">VELOCÉ</span>
       <span class="tag">Concierge</span>
     </div>
-    <nav aria-label="Console">
-      <a href="#overview" data-view="overview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4zm0 7h6v-5H4zm10 0h6v-9h-6zm0-16v5h6V4z"/></svg>Overview</a>
-      <a href="#bookings" data-view="bookings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2V3h-2v2H9V3zm-2 7h14v9H5z"/></svg>Bookings<span class="badge" id="pending-badge" hidden></span></a>
-      <a href="#fleet" data-view="fleet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11a2 2 0 0 1 2 2v4h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H3v-4a2 2 0 0 1 2-2m2.1 0h9.8l-1-3H8.1z"/></svg>Fleet</a>
-      <a href="#activity" data-view="activity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-2.05-4.95L14 10h7V3l-2.64 2.64A8.96 8.96 0 0 0 12 3m-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>Activity</a>
+    <button type="button" class="find" id="open-palette" aria-keyshortcuts="Meta+K Control+K">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 4a6.5 6.5 0 0 1 5.17 10.44l4.45 4.44-1.42 1.42-4.44-4.45A6.5 6.5 0 1 1 10.5 4m0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9"/></svg>
+      <span>Search</span><kbd id="palette-key">⌘K</kbd>
+    </button>
+    <nav aria-label="Sections">
+      <a href="#overview" data-view="overview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4zm0 7h6v-5H4zm10 0h6v-9h-6zm0-16v5h6V4z"/></svg><span>Overview</span></a>
+      <a href="#bookings" data-view="bookings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2V3h-2v2H9V3zm-2 7h14v9H5z"/></svg><span>Bookings</span><span class="badge" id="pending-badge" hidden></span></a>
+      <a href="#fleet" data-view="fleet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11a2 2 0 0 1 2 2v4h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H3v-4a2 2 0 0 1 2-2m2.1 0h9.8l-1-3H8.1z"/></svg><span>Fleet</span></a>
+      <a href="#activity" data-view="activity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-2.05-4.95L14 10h7V3l-2.64 2.64A8.96 8.96 0 0 0 12 3m-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg><span>Activity</span></a>
     </nav>
     <div class="side-foot">
       <p class="session" id="session"></p>
       <a class="quiet" href="/" target="_blank" rel="noopener">Open the website ↗</a>
+      <button type="button" class="quiet" id="shortcuts-open">Keyboard shortcuts</button>
       <button type="button" class="quiet" id="logout">Sign out</button>
     </div>
   </aside>
 
-  <div class="main">
+  <main class="main" id="main" tabindex="-1">
     <header class="top">
       <div>
+        <p class="eyebrow" id="eyebrow"></p>
         <h1 id="title">Overview</h1>
-        <p class="sub" id="updated">Loading…</p>
+        <p class="sub" id="updated" aria-live="polite">Loading…</p>
       </div>
       <div class="actions">
-        <button type="button" class="btn ghost" id="refresh" title="Refresh (R)">Refresh</button>
-        <a class="btn ghost" id="export" href="/api/admin/bookings.csv" download>Export CSV</a>
+        <button type="button" class="btn ghost icon-btn" id="refresh" aria-label="Refresh" title="Refresh (R)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z"/></svg></button>
+        <a class="btn ghost" id="export" href="/api/admin/bookings.csv" download>Export</a>
+        <button type="button" class="btn ghost mobile-only" id="open-palette-m" aria-label="Search"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 4a6.5 6.5 0 0 1 5.17 10.44l4.45 4.44-1.42 1.42-4.44-4.45A6.5 6.5 0 1 1 10.5 4m0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9"/></svg></button>
       </div>
     </header>
-    <p class="banner" id="demo-banner" hidden>You are using the demo password. Set ADMIN_PASSWORD before putting this site online.</p>
+    <p class="banner" id="demo-banner" hidden>You're signed in with the demo password. Set ADMIN_PASSWORD before this site goes online.</p>
 
     <section id="view-overview" class="view" aria-labelledby="title">
       <div class="stats" id="stats"></div>
       <div class="grid2">
-        <article class="panel">
-          <header><h2>Awaiting a reply</h2><a class="quiet" href="#bookings?status=pending">See all</a></header>
+        <section class="panel" aria-labelledby="h-awaiting">
+          <header><h2 id="h-awaiting">Needs a reply</h2><a class="quiet" href="#bookings?status=pending">See all</a></header>
           <ul class="list" id="awaiting"></ul>
-        </article>
-        <article class="panel">
-          <header><h2>Next pick-ups</h2><span class="hint">Confirmed</span></header>
-          <ul class="list" id="upcoming"></ul>
-        </article>
+        </section>
+        <section class="panel" aria-labelledby="h-upcoming">
+          <header><h2 id="h-upcoming">Coming up</h2><span class="hint">Pick-ups and returns</span></header>
+          <div id="upcoming"></div>
+        </section>
       </div>
-      <article class="panel">
-        <header><h2>Requests by car</h2><span class="hint">Pending and confirmed</span></header>
+      <section class="panel" aria-labelledby="h-cars">
+        <header><h2 id="h-cars">Demand by car</h2><span class="legend"><i class="sw confirmed"></i>Confirmed <i class="sw pending"></i>Pending</span></header>
         <div class="bars" id="by-car"></div>
-      </article>
+      </section>
     </section>
 
-    <section id="view-bookings" class="view" hidden>
+    <section id="view-bookings" class="view" hidden aria-labelledby="title">
       <div class="toolbar">
-        <div class="tabs" role="tablist" id="status-tabs"></div>
+        <div class="tabs" role="tablist" aria-label="Filter by status" id="status-tabs"></div>
         <div class="tools">
-          <input type="search" id="search" placeholder="Search guest, email, reference, car…  ( / )" aria-label="Search bookings" />
-          <select id="sort" aria-label="Sort">
-            <option value="created">Newest request</option>
-            <option value="pickup">Pick-up date</option>
-          </select>
+          <label class="search">
+            <span class="sr">Search bookings</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 4a6.5 6.5 0 0 1 5.17 10.44l4.45 4.44-1.42 1.42-4.44-4.45A6.5 6.5 0 1 1 10.5 4m0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9"/></svg>
+            <input type="search" id="search" placeholder="Search guests, cars, references" autocomplete="off" spellcheck="false" />
+            <kbd>/</kbd>
+          </label>
+          <label><span class="sr">Sort</span>
+            <select id="sort">
+              <option value="created">Newest request</option>
+              <option value="pickup">Pick-up date</option>
+            </select>
+          </label>
         </div>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Guest</th><th>Car</th><th>City</th><th>Dates</th><th>Received</th><th>Status</th></tr></thead>
+          <caption class="sr">Bookings. Use J and K to move, Enter to open.</caption>
+          <thead><tr><th scope="col">Guest</th><th scope="col">Car</th><th scope="col">City</th><th scope="col">Dates</th><th scope="col">Received</th><th scope="col">Status</th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
     </section>
 
-    <section id="view-fleet" class="view" hidden>
-      <article class="panel">
-        <header><h2>Next 30 days</h2><span class="legend"><i class="sw confirmed"></i>Confirmed <i class="sw pending"></i>Pending</span></header>
+    <section id="view-fleet" class="view" hidden aria-labelledby="title">
+      <section class="panel" aria-labelledby="h-tl">
+        <header><h2 id="h-tl">Next 30 days</h2><span class="legend"><i class="sw confirmed"></i>Confirmed <i class="sw pending"></i>Pending</span></header>
         <div class="timeline" id="timeline"></div>
-      </article>
+      </section>
       <div class="cars" id="cars"></div>
     </section>
 
-    <section id="view-activity" class="view" hidden>
-      <article class="panel">
-        <header><h2>Sign-ins and changes</h2><span class="hint">Newest first · kept as long as bookings</span></header>
+    <section id="view-activity" class="view" hidden aria-labelledby="title">
+      <section class="panel" aria-labelledby="h-activity">
+        <header><h2 id="h-activity">Sign-ins and changes</h2><span class="hint">Newest first</span></header>
         <ul class="list feed" id="activity"></ul>
-      </article>
+      </section>
     </section>
-  </div>
+  </main>
+
+  <nav class="tabbar" aria-label="Sections">
+    <a href="#overview" data-view="overview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4zm0 7h6v-5H4zm10 0h6v-9h-6zm0-16v5h6V4z"/></svg>Overview</a>
+    <a href="#bookings" data-view="bookings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2V3h-2v2H9V3zm-2 7h14v9H5z"/></svg>Bookings<span class="badge" id="pending-badge-m" hidden></span></a>
+    <a href="#fleet" data-view="fleet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11a2 2 0 0 1 2 2v4h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H3v-4a2 2 0 0 1 2-2m2.1 0h9.8l-1-3H8.1z"/></svg>Fleet</a>
+    <a href="#activity" data-view="activity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-2.05-4.95L14 10h7V3l-2.64 2.64A8.96 8.96 0 0 0 12 3m-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>Activity</a>
+  </nav>
 </div>
 
 <div class="scrim" id="scrim" hidden></div>
-<aside class="drawer" id="drawer" aria-hidden="true" aria-labelledby="d-name" role="dialog">
-  <header>
-    <div>
-      <p class="ref" id="d-ref"></p>
-      <h2 id="d-name"></h2>
-      <a id="d-email" class="quiet"></a>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-labelledby="d-name" role="dialog" aria-modal="true" inert>
+  <header class="d-head">
+    <div class="d-nav">
+      <button type="button" class="icon" id="d-prev" aria-label="Previous booking" title="Previous (K)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.4 15.4 12 10.8l4.6 4.6L18 14l-6-6-6 6z"/></svg></button>
+      <button type="button" class="icon" id="d-next" aria-label="Next booking" title="Next (J)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg></button>
     </div>
-    <button type="button" class="icon" id="d-close" aria-label="Close">✕</button>
+    <button type="button" class="icon" id="d-close" aria-label="Close" title="Close (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7l-1.4-1.4L9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z" transform="translate(1.1 0)"/></svg></button>
   </header>
-  <dl class="facts" id="d-facts"></dl>
-  <div class="block">
-    <h3>Status</h3>
-    <div class="seg" id="d-status" role="radiogroup" aria-label="Booking status">
-      <button type="button" data-status="pending">Pending</button>
-      <button type="button" data-status="confirmed">Confirmed</button>
-      <button type="button" data-status="cancelled">Cancelled</button>
+  <div class="d-body">
+    <p class="ref" id="d-ref"></p>
+    <h2 id="d-name"></h2>
+    <a id="d-email" class="quiet"></a>
+    <div class="d-primary" id="d-primary"></div>
+    <dl class="facts" id="d-facts"></dl>
+    <div class="block">
+      <h3 id="h-status">Status</h3>
+      <div class="seg" id="d-status" role="radiogroup" aria-labelledby="h-status">
+        <button type="button" role="radio" data-status="pending">Pending</button>
+        <button type="button" role="radio" data-status="confirmed">Confirmed</button>
+        <button type="button" role="radio" data-status="cancelled">Cancelled</button>
+      </div>
     </div>
-  </div>
-  <div class="block">
-    <h3><label for="d-note">Staff note</label></h3>
-    <textarea id="d-note" rows="4" maxlength="2000" placeholder="Only staff see this. E.g. delivery address, called guest, deposit received."></textarea>
-    <div class="row"><span class="hint" id="d-note-state"></span><button type="button" class="btn" id="d-save">Save note</button></div>
-  </div>
-  <div class="block">
-    <h3>History</h3>
-    <ul class="list feed" id="d-history"></ul>
-  </div>
-  <div class="block actions-row">
-    <a class="btn ghost" id="d-mail">Email guest</a>
-    <button type="button" class="btn ghost" id="d-copy">Copy reference</button>
-    <button type="button" class="btn danger" id="d-delete">Delete</button>
+    <div class="block">
+      <h3><label for="d-note">Staff note</label></h3>
+      <textarea id="d-note" rows="4" maxlength="2000" placeholder="Only staff see this. For example: delivery address, called the guest, deposit received."></textarea>
+      <div class="row"><span class="hint" id="d-note-state" aria-live="polite"></span><button type="button" class="btn" id="d-save" title="Save (⌘ Enter)">Save note</button></div>
+    </div>
+    <div class="block">
+      <h3>History</h3>
+      <ul class="list feed" id="d-history"></ul>
+    </div>
+    <div class="block actions-row">
+      <a class="btn ghost" id="d-mail">Email guest</a>
+      <button type="button" class="btn ghost" id="d-copy">Copy reference</button>
+      <button type="button" class="btn danger" id="d-delete">Delete</button>
+    </div>
   </div>
 </aside>
 
-<dialog id="confirm">
+<dialog id="confirm" aria-labelledby="c-title">
   <form method="dialog">
     <h2 id="c-title">Delete this booking?</h2>
     <p id="c-body"></p>
     <div class="row end">
-      <button value="cancel" class="btn ghost">Keep it</button>
+      <button value="cancel" class="btn ghost" autofocus>Keep it</button>
       <button value="ok" class="btn danger" id="c-ok">Delete</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="palette" class="palette" aria-label="Search and commands">
+  <div class="p-search">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 4a6.5 6.5 0 0 1 5.17 10.44l4.45 4.44-1.42 1.42-4.44-4.45A6.5 6.5 0 1 1 10.5 4m0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9"/></svg>
+    <input id="p-input" type="text" placeholder="Search bookings or type a command" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="p-list" aria-autocomplete="list" />
+    <kbd>Esc</kbd>
+  </div>
+  <ul id="p-list" role="listbox" aria-label="Results"></ul>
+</dialog>
+
+<dialog id="shortcuts" aria-labelledby="s-title">
+  <h2 id="s-title">Keyboard shortcuts</h2>
+  <dl class="keys">
+    <dt><kbd>⌘</kbd><kbd>K</kbd></dt><dd>Search and commands</dd>
+    <dt><kbd>/</kbd></dt><dd>Search bookings</dd>
+    <dt><kbd>G</kbd> then <kbd>O</kbd> <kbd>B</kbd> <kbd>F</kbd> <kbd>A</kbd></dt><dd>Go to Overview, Bookings, Fleet, Activity</dd>
+    <dt><kbd>J</kbd> <kbd>K</kbd></dt><dd>Next and previous booking</dd>
+    <dt><kbd>Enter</kbd></dt><dd>Open the selected booking</dd>
+    <dt><kbd>C</kbd></dt><dd>Confirm the open booking</dd>
+    <dt><kbd>⌘</kbd><kbd>Enter</kbd></dt><dd>Save the note</dd>
+    <dt><kbd>R</kbd></dt><dd>Refresh</dd>
+    <dt><kbd>Esc</kbd></dt><dd>Close</dd>
+  </dl>
+  <form method="dialog" class="row end"><button class="btn ghost">Done</button></form>
 </dialog>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 </body>
