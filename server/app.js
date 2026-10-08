@@ -18,7 +18,7 @@ import { bookingCancelled, bookingConfirmed, bookingReceived, depositReceived, d
 import { createMailer } from './mailer.js'
 import { CALLBACK_PATH, createGoogleAuth, safeReturnPath } from './google.js'
 import { parseCookies, RateLimiter, rateLimit, sameOrigin, securityHeaders, tooMany } from './security.js'
-import { createPaymentStore, createStripe, formatMoney } from './payments.js'
+import { createPaymentStore, createRazorpay, formatMoney } from './payments.js'
 
 const MINUTE = 60_000
 const DAY = 24 * 60 * MINUTE
@@ -75,11 +75,11 @@ export function createApp(options = {}) {
   const bookings = createBookingStore(db)
   const analytics = createAnalytics(db)
   const payments = createPaymentStore(db)
-  const provider = config.payments ? createStripe(config.payments, options.paymentFetch) : null
+  const provider = config.payments ? createRazorpay(config.payments, options.paymentFetch) : null
   /*
    * Booking events other parts of the server can react to (confirmation emails, for one).
    *   'payment.received'  (booking)  a deposit was paid; fired exactly once per booking
-   *   'payment.refunded'  (booking)  the deposit was refunded in full from the Stripe dashboard
+   *   'payment.refunded'  (booking)  the deposit was refunded in full from the Razorpay dashboard
    * `booking` is the full booking as the admin API returns it, including booking.payment.
    * A listener that throws is logged and never breaks the request that triggered it.
    */
@@ -114,7 +114,7 @@ export function createApp(options = {}) {
     if (!limiters.emailRecipient.hit(booking.email).ok) return audit('email.recipient_capped', { reference: booking.reference })
     sendEmail(booking.email, template(booking, emailOptions), `${tag} ${booking.reference}`)
   }
-  // Deposit receipts. These fire once per booking, only when Stripe is set up as well.
+  // Deposit receipts. These fire once per booking, only when Razorpay is set up as well.
   for (const [event, template, tag] of [['payment.received', depositReceived, 'deposit-received'], ['payment.refunded', depositRefunded, 'deposit-refunded']]) {
     events.on(event, (booking) => {
       if (!booking?.payment?.amount) return
@@ -180,11 +180,11 @@ export function createApp(options = {}) {
   })
   app.use('/api', rateLimit(limiters.api))
 
-  // Stripe signs the exact bytes it sends, so this one route reads the raw body,
+  // Razorpay signs the exact bytes it sends, so this one route reads the raw body,
   // before the JSON parser below gets to it.
   app.post('/api/payments/webhook', express.raw({ type: 'application/json', limit: '256kb' }), (req, res) => {
     if (!provider || !config.payments.webhookSecret) return res.status(404).json({ error: 'Not found.' })
-    if (!provider.webhookSignatureValid(req.body, req.headers['stripe-signature'])) {
+    if (!provider.webhookSignatureValid(req.body, req.headers[provider.signatureHeader])) {
       audit('payment.webhook_bad_signature', { ip: req.ip })
       return res.status(400).json({ error: 'Bad signature.' })
     }
@@ -198,7 +198,7 @@ export function createApp(options = {}) {
     if (update?.kind === 'paid') paid(update, 'webhook')
     else if (update?.kind === 'refunded') refunded(update.paymentId)
     // Anything else (other events, bookings this site no longer has) is acknowledged and ignored,
-    // so Stripe does not keep retrying it.
+    // so Razorpay does not keep retrying it.
     res.json({ received: true })
   })
 
@@ -274,7 +274,7 @@ export function createApp(options = {}) {
     res.json(summary(booking))
   })
 
-  // ---- Online deposit (Stripe Checkout). Every route answers 404 until the key is set. ----
+  // ---- Online deposit (Razorpay Payment Links). Every route answers 404 until the keys are set. ----
 
   // Payments also show in the booking's history in the console.
   const recordPayment = (event, reference, detail) => {
@@ -284,11 +284,11 @@ export function createApp(options = {}) {
       console.error('[payments] could not store event:', err)
     }
   }
-  /** Marks a booking paid from a session Stripe says is paid. Only the first call records and announces it. */
+  /** Marks a booking paid from a payment link Razorpay says is paid. Only the first call records and announces it. */
   const paid = (session, via) => {
     const expected = payments.expected(session.reference)
     if (!expected) return false
-    // The figure comes from Stripe, but it must be the deposit this server asked for.
+    // The figure comes from Razorpay, but it must be the deposit this server asked for.
     if (session.amount !== expected.amount || session.currency !== expected.currency) {
       audit('payment.amount_mismatch', { reference: session.reference, expected: `${expected.amount} ${expected.currency}`, got: `${session.amount} ${session.currency}` })
       return false
@@ -327,7 +327,7 @@ export function createApp(options = {}) {
     res.json({ enabled: true, provider: name, amount, currency, test })
   })
 
-  // Starts a deposit for one booking and returns Stripe's payment page. Like the status lookup,
+  // Starts a deposit for one booking and returns Razorpay's payment page. Like the status lookup,
   // it needs the reference and the email together. The amount is the server's own setting.
   app.post('/api/payments/checkout', paymentsOff, paymentLimit, async (req, res) => {
     const { reference, email } = req.body ?? {}
@@ -339,17 +339,15 @@ export function createApp(options = {}) {
     if (booking.payment.status !== 'none') return res.status(409).json({ error: 'The deposit for this booking is already paid.' })
     const { amount, currency, siteUrl } = config.payments
     const site = siteUrl || config.siteUrl || `${req.protocol}://${req.get('host')}`
-    const ref = encodeURIComponent(booking.reference)
     try {
       const { sessionId, url } = await provider.createCheckout({
         reference: booking.reference,
+        name: booking.name,
         email: booking.email,
         amount,
         currency,
         description: `Reservation deposit, ${booking.vehicle ?? 'Velocé'} (${booking.reference})`,
-        // Stripe fills in {CHECKOUT_SESSION_ID} itself.
-        successUrl: `${site}/?payment=done&session_id={CHECKOUT_SESSION_ID}#manage`,
-        cancelUrl: `${site}/?payment=cancelled&ref=${ref}#manage`,
+        returnUrl: `${site}/api/payments/return`,
       })
       payments.saveCheckout(booking.reference, sessionId, amount, currency)
       res.json({ url })
@@ -359,11 +357,18 @@ export function createApp(options = {}) {
     }
   })
 
-  // The guest is back from Stripe. The server asks Stripe itself; the browser's word is not enough.
-  // The session id is a long secret only the payer's browser holds.
+  // Razorpay sends the paying guest here with ?razorpay_payment_link_id=...; the site's
+  // Manage booking panel picks it up from there and asks /confirm below.
+  app.get('/api/payments/return', paymentsOff, (req, res) => {
+    const id = req.query.razorpay_payment_link_id
+    res.redirect(303, isString(id) && provider.sessionIdPattern.test(id) ? `/?payment=done&session_id=${id}#manage` : '/#manage')
+  })
+
+  // The guest is back from Razorpay. The server asks Razorpay itself; the browser's word is not enough.
+  // The answer holds no personal details, only what the status lookup shows.
   app.post('/api/payments/confirm', paymentsOff, paymentLimit, async (req, res) => {
     const { sessionId } = req.body ?? {}
-    if (!isString(sessionId) || !/^cs_(test|live)_[A-Za-z0-9]{10,200}$/.test(sessionId)) return res.status(404).json({ error: 'Payment not found.' })
+    if (!isString(sessionId) || !provider.sessionIdPattern.test(sessionId)) return res.status(404).json({ error: 'Payment not found.' })
     let session
     try {
       session = await provider.getCheckout(sessionId)

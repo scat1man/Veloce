@@ -18,7 +18,8 @@ const fmtDate = (s: string) =>
   new Date(s + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
 /**
- * Stripe sends the guest back to /?payment=done&session_id=...#manage (or payment=cancelled&ref=...).
+ * After paying, the guest comes back to /?payment=done&session_id=...#manage (the server forwards
+ * Razorpay's return there). payment=cancelled&ref=... is handled too.
  * Read those once, then take them out of the address bar so a reload does not repeat them.
  */
 function takePaymentReturn() {

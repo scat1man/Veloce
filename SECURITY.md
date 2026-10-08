@@ -38,11 +38,11 @@ on this repository. Do not open a public issue.
   request's Host header), and reach any one inbox at most 3 times an hour from the public form.
   The email API key lives only in the host's environment settings.
 
-**Payments** (optional, Stripe Checkout, see `server/payments.js`)
-- Card details are entered on Stripe's own page and never reach this server.
+**Payments** (optional, Razorpay Payment Links, see `server/payments.js`)
+- Card and UPI details are entered on Razorpay's own page and never reach this server.
 - The deposit amount is a server setting; nothing the browser sends can change it.
-- A payment counts only when Stripe says so: either the server asks Stripe about the session, or
-  Stripe's webhook arrives with a valid `Stripe-Signature` (HMAC-SHA256, at most 5 minutes old).
+- A payment counts only when Razorpay says so: either the server asks Razorpay about the payment
+  link, or Razorpay's webhook arrives with a valid `X-Razorpay-Signature` (HMAC-SHA256 of the raw body).
   The paid amount must equal the deposit asked for, and each booking is marked paid only once.
 - Starting a payment needs the booking reference and email together, like the status lookup, and is rate limited.
 

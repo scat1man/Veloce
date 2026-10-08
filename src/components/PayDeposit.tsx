@@ -8,7 +8,7 @@ import { Button } from './Button'
 let configRequest: Promise<PaymentConfig> | null = null
 const loadConfig = () => (configRequest ??= getPaymentConfig().catch(() => ({ enabled: false }) as const))
 
-/** The deposit settings, or null while loading. `enabled` is false when the site has no Stripe key. */
+/** The deposit settings, or null while loading. `enabled` is false when the site has no Razorpay keys. */
 export function usePaymentConfig() {
   const [config, setConfig] = useState<PaymentConfig | null>(null)
   useEffect(() => {
@@ -36,13 +36,20 @@ export function depositLine(payment: BookingPayment | undefined) {
 }
 
 /**
- * Sends the guest to Stripe's payment page for a booking's deposit. Renders nothing when
+ * Sends the guest to Razorpay's payment page for a booking's deposit. Renders nothing when
  * the site takes no online payment, so booking keeps working exactly as before.
  */
 export function PayDeposit({ reference, email, note }: { reference: string; email: string; note?: string }) {
   const config = usePaymentConfig()
   const [state, setState] = useState<'idle' | 'opening'>('idle')
   const [error, setError] = useState('')
+  // Coming back with the browser's Back button from Razorpay's page restores this page as it was:
+  // make the button usable again.
+  useEffect(() => {
+    const reset = () => setState('idle')
+    window.addEventListener('pageshow', reset)
+    return () => window.removeEventListener('pageshow', reset)
+  }, [])
   if (!config?.enabled) return null
 
   const pay = async () => {
@@ -62,8 +69,8 @@ export function PayDeposit({ reference, email, note }: { reference: string; emai
         {state === 'opening' ? 'Opening secure checkout' : `Pay ${formatMoney(config.amount, config.currency)} deposit`}
       </Button>
       <p className={`meta text-center ${error ? 'text-ink' : 'text-ash'}`} role={error ? 'alert' : undefined}>
-        {error || note || 'Holds the car while a concierge confirms. Paid securely through Stripe.'}
-        {!error && config.test && ' Test mode: use card 4242 4242 4242 4242.'}
+        {error || note || 'Holds the car while a concierge confirms. Card, UPI or netbanking, paid securely through Razorpay.'}
+        {!error && config.test && ' Test mode: pay by UPI with success@razorpay.'}
       </p>
     </motion.div>
   )

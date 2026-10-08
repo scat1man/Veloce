@@ -93,12 +93,12 @@ export const signOut = () => call<{ ok: true }>('/api/account/logout', { method:
  * once they are signed in, back to `returnTo` on this site.
  */
 export const googleSignInUrl = (returnTo: string) => `/auth/google?${new URLSearchParams({ return: returnTo })}`
-/** Whether the site takes an online deposit, and how much. Off until the server has a Stripe key. */
+/** Whether the site takes an online deposit, and how much. Off until the server has Razorpay keys. */
 export type PaymentConfig = { enabled: false } | { enabled: true; provider: string; amount: number; currency: string; test: boolean }
 
 export const getPaymentConfig = () => call<PaymentConfig>('/api/payments/config')
 
-/** Opens a Stripe payment page for a booking's deposit; resolves to its address. */
+/** Opens a Razorpay payment page for a booking's deposit; resolves to its address. */
 export const startCheckout = (reference: string, email: string) =>
   call<{ url: string }>('/api/payments/checkout', {
     method: 'POST',
@@ -106,6 +106,6 @@ export const startCheckout = (reference: string, email: string) =>
     body: JSON.stringify({ reference: reference.trim().toUpperCase(), email: email.trim() }),
   }).then((r) => r.url)
 
-/** Back from Stripe: the server checks the payment with Stripe and returns the booking. */
+/** Back from Razorpay: the server checks the payment with Razorpay and returns the booking. */
 export const confirmPayment = (sessionId: string) =>
   call<BookingSummary>('/api/payments/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId }) })

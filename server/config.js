@@ -55,7 +55,7 @@ export function loadConfig(env = process.env, overrides = {}) {
     .filter(Boolean)
   for (const email of adminGoogleEmails)
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new ConfigError(`ADMIN_GOOGLE_EMAILS has an invalid address: "${email}".`)
-  // Online deposits switch on when the Stripe key is set (see payments.js); null means off.
+  // Online deposits switch on when the Razorpay keys are set (see payments.js); null means off.
   let payments
   try {
     payments = overrides.payments === null ? null : paymentSettings(env, overrides.payments ?? {})
