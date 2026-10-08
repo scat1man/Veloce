@@ -203,7 +203,7 @@ the new password.
 
 ### Booking emails (optional)
 With this on, guests get an email when they send a request and again when you confirm or
-decline it in the console (plus a receipt when they pay a deposit online, and a note if it is refunded), and you get one for every new request. Without it the site works
+decline it in the console (plus a receipt when they pay a deposit online, and a note if it is refunded, whichever payment provider is set up), and you get one for every new request. Without it the site works
 the same, just silently. Render's free plan blocks normal mail servers (SMTP), so the site
 sends through **Brevo**, which works over HTTPS and is free for 300 emails a day. No domain needed.
 

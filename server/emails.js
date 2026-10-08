@@ -156,7 +156,7 @@ export function depositReceived(b, { siteUrl, amount } = {}) {
       headline: 'Deposit received.',
       lines: [
         `Thank you, ${firstName(b.name)}. We have received your deposit of ${amount} for ${formatDate(b.pickup)}.`,
-        'Keep this email as your receipt. Stripe may also send you its own.',
+        'Keep this email as your receipt. The payment provider may also send you its own.',
       ],
       details: [['Amount', amount], ...guestDetails(b), ...(b.payment?.paymentId ? [['Payment', b.payment.paymentId]] : [])],
       action: manage && { label: 'View booking', href: manage },
