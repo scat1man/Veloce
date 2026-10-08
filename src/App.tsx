@@ -7,6 +7,7 @@ import { MobileBookBar } from './components/MobileBookBar'
 import { Navbar } from './components/Navbar'
 import { SitePanels } from './components/SitePanels'
 import { startSmoothScroll } from './hooks/smoothScroll'
+import { AccountProvider } from './hooks/useAccount'
 import { SiteProvider } from './hooks/useSite'
 import { Footer } from './sections/Footer'
 import { HeroReveal } from './sections/HeroReveal'
@@ -36,31 +37,33 @@ export default function App() {
   return (
     // reducedMotion="user": transform & layout animations are dropped for visitors who ask for less motion.
     <MotionConfig reducedMotion="user">
-      <SiteProvider>
-        <div>
-          <a href="#showroom" className="label sr-only fixed left-4 top-4 z-[90] rounded-full bg-bone px-4 py-3 text-ink focus:not-sr-only">
-            Skip to content
-          </a>
+      <AccountProvider>
+        <SiteProvider>
+          <div>
+            <a href="#showroom" className="label sr-only fixed left-4 top-4 z-[90] rounded-full bg-bone px-4 py-3 text-ink focus:not-sr-only">
+              Skip to content
+            </a>
 
-          <Navbar />
-          <main className="relative z-10">
-            {/* If the 3D studio fails to load, the reveal falls back to photography. */}
-            <ErrorBoundary fallback={<HeroReveal />} onError={() => stageUI.set({ webgl: false, ready: true })}>
-              <HeroReveal />
-            </ErrorBoundary>
-            <MarquesSection />
-            <ShowroomSection />
-            <ExperienceSection />
-            <LocationsSection />
-            <AboutSection />
-            <ConciergeSection />
-          </main>
-          <Footer />
-          <MobileBookBar />
-          <BookingPanel />
-          <SitePanels />
-        </div>
-      </SiteProvider>
+            <Navbar />
+            <main className="relative z-10">
+              {/* If the 3D studio fails to load, the reveal falls back to photography. */}
+              <ErrorBoundary fallback={<HeroReveal />} onError={() => stageUI.set({ webgl: false, ready: true })}>
+                <HeroReveal />
+              </ErrorBoundary>
+              <MarquesSection />
+              <ShowroomSection />
+              <ExperienceSection />
+              <LocationsSection />
+              <AboutSection />
+              <ConciergeSection />
+            </main>
+            <Footer />
+            <MobileBookBar />
+            <BookingPanel />
+            <SitePanels />
+          </div>
+        </SiteProvider>
+      </AccountProvider>
     </MotionConfig>
   )
 }

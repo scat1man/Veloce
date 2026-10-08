@@ -227,6 +227,29 @@ your Render address; set `SITE_URL` if you add your own domain. Optional: `EMAIL
 (default `VELOCÉ`). For a client with their own domain, Resend also works: set
 `RESEND_API_KEY` instead of `BREVO_API_KEY`, with an `EMAIL_FROM` on that verified domain.
 
+### Sign in with Google (optional)
+Guests can then sign in to book without retyping their details and see all their requests, and
+you can open `/admin` with your Google account instead of the password. Until these settings
+exist, the site works exactly as before and shows no Google buttons.
+
+1. Open <https://console.cloud.google.com>, sign in, and create a project (top bar → project
+   picker → **New project**, name it "Veloce").
+2. Left menu → **APIs & Services** → **OAuth consent screen** (or **Google Auth Platform**) →
+   **Get started**. App name "VELOCÉ", your email as support and contact email, audience
+   **External**. Then **Audience** → **Publish app**, so anyone can sign in, not only test users.
+3. **Clients** (or **Credentials** → **Create credentials** → **OAuth client ID**) → type
+   **Web application**, name "Veloce site", then add:
+   - Authorised JavaScript origins: `https://veloce-ueal.onrender.com`
+   - Authorised redirect URIs: `https://veloce-ueal.onrender.com/auth/google/callback`
+   - For running it on your computer too, add `http://localhost:5173` and
+     `http://localhost:5173/auth/google/callback` (and the same with `3001`).
+4. **Create**, then copy the **Client ID** and **Client secret**.
+5. Render → your service → **Environment** → add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and
+   `ADMIN_GOOGLE_EMAILS` = your own Gmail address (several can be separated with commas) → **Save**.
+
+With a custom domain, add its address to step 3 as well. Google only asks for name and email
+("openid email profile"), which needs no Google review.
+
 ### Free plan limits in practice
 - **Sleep:** after 15 minutes without visitors it sleeps; the next visitor waits about 1 minute.
 - **750 free hours per month** across all your free services — enough for one site running all month.

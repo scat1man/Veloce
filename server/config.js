@@ -40,9 +40,26 @@ export function loadConfig(env = process.env, overrides = {}) {
   }
 
   const { email, emailProblem } = emailSettings(env, overrides)
+  // Google sign-in is optional: without both values the site simply shows no Google buttons.
+  const googleClientId = (overrides.googleClientId ?? env.GOOGLE_CLIENT_ID)?.trim() || undefined
+  const googleClientSecret = (overrides.googleClientSecret ?? env.GOOGLE_CLIENT_SECRET)?.trim() || undefined
+  if (googleClientId && !/^[\w.-]+\.apps\.googleusercontent\.com$/.test(googleClientId))
+    throw new ConfigError('GOOGLE_CLIENT_ID does not look like a Google OAuth client ID (it ends in .apps.googleusercontent.com).')
+  if (Boolean(googleClientId) !== Boolean(googleClientSecret))
+    throw new ConfigError('Google sign-in needs both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET. Set both, or neither.')
+  // Google accounts allowed into the admin console, comma-separated. Empty: password only.
+  const adminGoogleEmails = String(overrides.adminGoogleEmails ?? env.ADMIN_GOOGLE_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+  for (const email of adminGoogleEmails)
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new ConfigError(`ADMIN_GOOGLE_EMAILS has an invalid address: "${email}".`)
 
   return {
     production,
+    googleClientId,
+    googleClientSecret,
+    adminGoogleEmails: new Set(adminGoogleEmails),
     port: Number(overrides.port ?? env.PORT) || 3001,
     adminPassword,
     // What sign-ins are checked against: the parsed hash, or the plain password.
@@ -65,6 +82,8 @@ export function loadConfig(env = process.env, overrides = {}) {
     // Links in emails. Render sets RENDER_EXTERNAL_URL by itself; SITE_URL wins (e.g. a custom domain).
     // Never taken from the request's Host header, which a visitor controls.
     siteUrl: (overrides.siteUrl ?? env.SITE_URL ?? env.RENDER_EXTERNAL_URL)?.trim() || null,
+    // Tests replace the call to Google's token endpoint.
+    fetch: overrides.fetch ?? globalThis.fetch,
     log: overrides.log ?? ((line) => console.log(line)),
   }
 }

@@ -6,6 +6,7 @@ import { existsSync } from 'node:fs'
 import { extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { clearSessionCookie, createSessionStore, passwordMatches, sessionId, setSessionCookie } from './auth.js'
+import { clearGuestCookie, createAccountStore, guestSessionId, setGuestCookie } from './accounts.js'
 import { createActivityLog } from './activity.js'
 import { createAnalytics, isBot } from './analytics.js'
 import { createBookingStore, LIMITS, newReference, validate } from './bookings.js'
@@ -14,7 +15,8 @@ import { loadConfig } from './config.js'
 import { openDb } from './db.js'
 import { bookingCancelled, bookingConfirmed, bookingReceived, ownerNewBooking } from './emails.js'
 import { createMailer } from './mailer.js'
-import { RateLimiter, rateLimit, sameOrigin, securityHeaders, tooMany } from './security.js'
+import { CALLBACK_PATH, createGoogleAuth, safeReturnPath } from './google.js'
+import { parseCookies, RateLimiter, rateLimit, sameOrigin, securityHeaders, tooMany } from './security.js'
 
 const MINUTE = 60_000
 const DAY = 24 * 60 * MINUTE
@@ -33,6 +35,8 @@ const DEFAULT_LIMITS = {
   // Analytics reports from the website: plenty for a real visit, and a site-wide ceiling.
   events: { limit: 60, windowMs: MINUTE },
   eventsGlobal: { limit: 20_000, windowMs: 60 * MINUTE },
+  // Starting and finishing "Sign in with Google".
+  googleSignIn: { limit: 30, windowMs: 10 * MINUTE },
 }
 const EVERYONE = '*'
 const FAILED_LOGIN_DELAY_MS = 400
@@ -57,8 +61,8 @@ export function createApp(options = {}) {
     // Blocked CSRF and rate-limited sign-ins can be triggered by anyone, as often as they like,
     // so they stay in the host's logs only and cannot flood the database.
     if (!event.startsWith('admin.') || event === 'admin.csrf_blocked' || event === 'admin.login_blocked') return
-    const { ip = null, reference = null, from, to, rows } = fields
-    const detail = from !== undefined ? `${from} → ${to}` : rows !== undefined ? `${rows} booking${rows === 1 ? '' : 's'}` : ''
+    const { ip = null, reference = null, from, to, rows, via } = fields
+    const detail = from !== undefined ? `${from} → ${to}` : rows !== undefined ? `${rows} booking${rows === 1 ? '' : 's'}` : (via ?? '')
     try {
       activity.record(event.slice('admin.'.length), { reference, detail, ip })
     } catch (err) {
@@ -68,6 +72,9 @@ export function createApp(options = {}) {
   const bookings = createBookingStore(db)
   const analytics = createAnalytics(db)
   const sessions = createSessionStore(db, { hours: config.sessionHours, secret: config.adminSecret })
+  const accounts = createAccountStore(db)
+  const google = createGoogleAuth({ clientId: config.googleClientId, clientSecret: config.googleClientSecret, fetchImpl: config.fetch })
+  const adminGoogle = Boolean(google && config.adminGoogleEmails.size)
 
   const limits = { ...DEFAULT_LIMITS, ...config.limits }
   const limiters = Object.fromEntries(Object.entries(limits).map(([name, opts]) => [name, new RateLimiter(opts)]))
@@ -90,6 +97,7 @@ export function createApp(options = {}) {
     try {
       const removed = bookings.purge(config.retentionDays)
       const expired = sessions.purgeExpired()
+      accounts.purge(config.retentionDays)
       activity.purge(config.retentionDays)
       analytics.purge(config.retentionDays)
       if (removed || expired) log(`[retention] removed ${removed} booking(s) older than ${config.retentionDays} days, ${expired} expired session(s)`)
@@ -100,7 +108,10 @@ export function createApp(options = {}) {
   retention()
   const timers = [
     setInterval(retention, DAY),
-    setInterval(() => Object.values(limiters).forEach((l) => l.sweep()), MINUTE),
+    setInterval(() => {
+      Object.values(limiters).forEach((l) => l.sweep())
+      google?.sweep()
+    }, MINUTE),
   ]
   timers.forEach((t) => t.unref())
 
@@ -132,7 +143,7 @@ export function createApp(options = {}) {
   })
   // Gzip every text response (JS, CSS, HTML, JSON): the main 3D bundle drops from 1.2 MB to about 370 KB.
   app.use(compression())
-  app.use(['/api', '/admin'], (_req, res, next) => {
+  app.use(['/api', '/admin', '/auth'], (_req, res, next) => {
     res.setHeader('Cache-Control', 'no-store')
     next()
   })
@@ -286,7 +297,7 @@ export function createApp(options = {}) {
     res.json(
       expiresAt
         ? { authenticated: true, expiresAt: new Date(expiresAt).toISOString(), demoPassword: config.usingDevPassword, vehicles, cities }
-        : { authenticated: false },
+        : { authenticated: false, google: adminGoogle },
     )
   })
   app.get('/api/admin/bookings', requireAdmin, (_req, res) => res.json(bookings.listBookings()))
@@ -359,6 +370,106 @@ export function createApp(options = {}) {
     res.json({ ok: true })
   })
 
+  // ---- Sign in with Google: guests on the public site and, when allowed, staff ----
+
+  const OAUTH_COOKIE = 'veloce_oauth'
+  const oauthCookie = (req) => (req.secure ? `__Host-${OAUTH_COOKIE}` : OAUTH_COOKIE)
+  const oauthCookieOptions = (req) => ({ httpOnly: true, sameSite: 'lax', secure: req.secure, path: '/' })
+  // Must match an "Authorised redirect URI" in Google Cloud Console exactly. A forged Host header
+  // cannot abuse this: Google refuses any redirect URI that is not registered.
+  const redirectUri = (req) => `${req.protocol}://${req.get('host')}${CALLBACK_PATH}`
+
+  // A tiny page that moves on to `to`. A plain redirect would not do: the visitor arrives here from
+  // accounts.google.com, and browsers hold back SameSite=Strict cookies for the rest of a redirect
+  // chain that started on another site. A page of our own starts a fresh, same-site navigation.
+  const continueTo = (res, to) => {
+    const href = escapeAttr(to)
+    res
+      .type('html')
+      .send(`<!doctype html><meta charset="utf-8"><meta name="referrer" content="no-referrer"><meta http-equiv="refresh" content="0;url=${href}"><title>Signing in</title><a href="${href}">Continue</a>`)
+  }
+
+  app.get('/auth/google', rateLimit(limiters.googleSignIn, 'Too many sign-in attempts. Please wait a few minutes.'), (req, res) => {
+    const purpose = req.query.for === 'admin' ? 'admin' : 'guest'
+    if (!google || (purpose === 'admin' && !adminGoogle)) return res.redirect(303, purpose === 'admin' ? '/admin/login' : '/')
+    const returnTo = purpose === 'admin' ? '/admin' : safeReturnPath(req.query.return)
+    const { url, state } = google.begin({ purpose, returnTo, redirectUri: redirectUri(req) })
+    // SameSite=Lax, not Strict: it must come back with Google's redirect, a cross-site navigation.
+    res.cookie(oauthCookie(req), state, { ...oauthCookieOptions(req), maxAge: 10 * MINUTE })
+    res.redirect(303, url)
+  })
+
+  app.get(CALLBACK_PATH, rateLimit(limiters.googleSignIn, 'Too many sign-in attempts. Please wait a few minutes.'), async (req, res) => {
+    const flow = google?.take(req.query.state, parseCookies(req.headers.cookie)[oauthCookie(req)])
+    res.clearCookie(oauthCookie(req), oauthCookieOptions(req))
+    if (!flow) return continueTo(res, '/?signin=expired')
+    const back = (outcome) => (flow.purpose === 'admin' ? `/admin/login?google=${outcome}` : withParam(flow.returnTo, 'signin', outcome))
+    if (req.query.error || !isString(req.query.code)) return continueTo(res, back('cancelled'))
+
+    let who
+    try {
+      who = await google.finish(flow, req.query.code)
+    } catch (err) {
+      log(`[google] sign-in failed: ${err.message}`)
+      return continueTo(res, back('failed'))
+    }
+
+    if (flow.purpose === 'admin') {
+      // Same counters as the password form, so Google cannot be used to get round them.
+      const ip = req.ip ?? 'unknown'
+      const wait = limiters.loginFailures.blocked(ip) ?? limiters.loginFailuresGlobal.blocked(EVERYONE)
+      if (wait) {
+        audit('admin.login_blocked', { ip })
+        return continueTo(res, back('locked'))
+      }
+      if (!config.adminGoogleEmails.has(who.email)) {
+        limiters.loginFailures.hit(ip)
+        limiters.loginFailuresGlobal.hit(EVERYONE)
+        audit('admin.login_failed', { ip, email: who.email, via: 'Google account not on the staff list' })
+        return continueTo(res, back('denied'))
+      }
+      limiters.loginFailures.reset(ip)
+      setSessionCookie(req, res, sessions.create(), sessions.ttl)
+      audit('admin.login_ok', { ip, via: `Google (${who.email})` })
+      return continueTo(res, '/admin')
+    }
+
+    setGuestCookie(req, res, accounts.signIn(who), accounts.ttl)
+    audit('guest.login', { ip: req.ip })
+    continueTo(res, flow.returnTo)
+  })
+
+  // ---- Guest account: who is signed in, and their bookings ----
+
+  const guest = (req) => accounts.current(guestSessionId(req))
+
+  app.get('/api/account', (req, res) => {
+    const me = guest(req)
+    res.json({ google: Boolean(google), user: me ? { name: me.name, email: me.email } : null })
+  })
+
+  // Every booking made with the guest's Google-verified email, including ones made before they signed in.
+  app.get('/api/account/bookings', (req, res) => {
+    const me = guest(req)
+    if (!me) return res.status(401).json({ error: 'Please sign in.' })
+    res.json(
+      accounts.bookings(me.email).map((row) => ({
+        reference: row.reference,
+        vehicle: row.vehicle_id ? (vehicles[row.vehicle_id] ?? null) : null,
+        city: cities[row.city_id] ?? row.city_id,
+        pickup: row.pickup,
+        returnDate: row.return_date,
+        status: row.status,
+      })),
+    )
+  })
+
+  app.post('/api/account/logout', guardWrite, (req, res) => {
+    accounts.signOut(guestSessionId(req))
+    clearGuestCookie(req, res)
+    res.json({ ok: true })
+  })
+
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found.' }))
 
   // ---- Production: after `npm run build`, this server hosts the site too ----
@@ -400,6 +511,15 @@ export function createApp(options = {}) {
       db.close()
     },
   }
+}
+
+const escapeAttr = (text) => text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+/** Adds ?key=value to a path, keeping any #hash at the end. */
+function withParam(path, key, value) {
+  const i = path.indexOf('#')
+  const [base, hash] = i < 0 ? [path, ''] : [path.slice(0, i), path.slice(i)]
+  return `${base}${base.includes('?') ? '&' : '?'}${key}=${encodeURIComponent(value)}${hash}`
 }
 
 /** What a bot sees after filling the honeypot: shaped like a real booking, stored nowhere. */

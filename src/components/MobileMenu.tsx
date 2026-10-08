@@ -5,6 +5,7 @@ import { maskLine, stagger, fadeUp } from '../animations/variants'
 import { brand, guestLinks, navLinks, socialLinks } from '../data/content'
 import { locations } from '../data/locations'
 import { scrollToHash } from '../hooks/scrollTo'
+import { useAccount } from '../hooks/useAccount'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { useSite } from '../hooks/useSite'
 import { Button } from './Button'
@@ -20,6 +21,7 @@ type Props = { open: boolean; onClose: () => void }
 export function MobileMenu({ open, onClose }: Props) {
   useScrollLock(open)
   const { openBooking } = useSite()
+  const account = useAccount()
   const firstLink = useRef<HTMLAnchorElement>(null)
   const panel = useRef<HTMLDivElement>(null)
 
@@ -127,6 +129,13 @@ export function MobileMenu({ open, onClose }: Props) {
                 <div>
                   <p className="meta mb-3 text-stone">Guests</p>
                   <ul className="meta space-y-2 leading-relaxed">
+                    {account.google && (
+                      <li>
+                        <a href="#account" onClick={onClose} className="transition-colors hover:text-stone">
+                          {account.user ? 'Your account' : 'Sign in'}
+                        </a>
+                      </li>
+                    )}
                     {guestLinks.map((l) => (
                       <li key={l.href}>
                         <a href={l.href} onClick={onClose} className="transition-colors hover:text-stone">

@@ -13,7 +13,7 @@ export const privacy: LegalDoc = {
   sections: [
     {
       heading: 'What we collect',
-      body: 'Only what you type into the request form: your name, email, the car, city and dates. Nothing is collected while you simply browse.',
+      body: 'Only what you type into the request form: your name, email, the car, city and dates. If you choose to sign in with Google, we also receive your name, email address and Google account ID, and nothing else. Nothing is collected while you simply browse.',
     },
     {
       heading: 'Why',
@@ -21,11 +21,11 @@ export const privacy: LegalDoc = {
     },
     {
       heading: 'Cookies and tracking',
-      body: 'There are no advertising or analytics cookies. The browser remembers only whether you have already seen the opening animation, so it is not replayed on every visit.',
+      body: 'There are no advertising or analytics cookies. The browser remembers whether you have already seen the opening animation, and, if you sign in, a cookie keeps you signed in for up to 30 days or until you sign out.',
     },
     {
       heading: 'Third parties',
-      body: 'Fonts are served by Google Fonts, which receives your IP address as part of delivering them. Photography and 3D models are hosted with the site.',
+      body: 'Fonts are served by Google Fonts, which receives your IP address as part of delivering them. Signing in with Google is optional and handled on Google\'s own pages. Photography and 3D models are hosted with the site.',
     },
     {
       heading: 'Your choices',

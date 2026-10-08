@@ -16,6 +16,17 @@ on this repository. Do not open a public issue.
   `Secure` and `__Host-` prefixed over HTTPS. Changing the password signs every session out.
 - The console's code is served only inside a session; everyone else gets a 404.
 
+**Sign in with Google** (optional, off until `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set)
+- A server-side OpenID Connect redirect with PKCE, a one-time `state` tied to a cookie, and a `nonce`.
+  No Google script, frame or popup runs on the site, so the Content Security Policy is unchanged.
+- The identity token is fetched by the server straight from Google and its issuer, audience, expiry,
+  nonce and verified email are all checked.
+- Staff can use Google only with an account listed in `ADMIN_GOOGLE_EMAILS`; refusals count towards the
+  same lockout as wrong passwords. The password sign-in keeps working.
+- Guest sessions work like staff sessions (random id in an `HttpOnly`, `SameSite=Strict`, `__Host-` cookie,
+  only its hash stored) and only show bookings made with the guest's Google-verified email.
+  Guests who do not sign in for `RETENTION_DAYS` are forgotten.
+
 **Requests**
 - CSRF: state-changing admin calls must come from the site's own origin and carry JSON.
 - Rate limits on every API, per IP, plus a site-wide cap on new bookings.

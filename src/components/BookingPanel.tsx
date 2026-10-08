@@ -3,32 +3,79 @@ import { ChevronDown } from 'lucide-react'
 import { useEffect, useId, useState, type FormEvent, type ReactNode, type Ref } from 'react'
 import { createPortal } from 'react-dom'
 import { trackBookingStart } from '../analytics'
-import { checkAvailability, createBooking } from '../api'
+import { checkAvailability, createBooking, googleSignInUrl } from '../api'
 import { duration } from '../animations/tokens'
 import { fadeUp, maskLine, stagger } from '../animations/variants'
 import { locations } from '../data/locations'
 import { vehicleById, vehicleLabel, vehicles } from '../data/vehicles'
-import { useSite } from '../hooks/useSite'
+import { noticeCopy, useAccount } from '../hooks/useAccount'
+import { useSite, type BookingIntent } from '../hooks/useSite'
 import { Button } from './Button'
+import { GoogleMark } from './GoogleButton'
 import { SideSheet } from './SideSheet'
 
 /** "Book a drive" — an editorial side sheet (full screen on mobile). */
 export function BookingPanel() {
-  const { booking, closeBooking } = useSite()
+  const { booking, openBooking, closeBooking } = useSite()
+
+  // Back from "Continue with Google" (which returns to /#book): reopen the form as it was left.
+  useEffect(() => {
+    if (window.location.hash !== '#book') return
+    history.replaceState(null, '', window.location.pathname + window.location.search)
+    openBooking(takeDraft())
+  }, [openBooking])
+
   return createPortal(
     <AnimatePresence>
-      {booking && <Sheet key="sheet" vehicleId={booking.vehicleId} locationId={booking.locationId} onClose={closeBooking} />}
+      {booking && <Sheet key="sheet" intent={booking} onClose={closeBooking} />}
     </AnimatePresence>,
     document.body,
   )
 }
 
-function Sheet({ vehicleId, locationId, onClose }: { vehicleId?: string; locationId?: string; onClose: () => void }) {
+function Sheet({ intent, onClose }: { intent: BookingIntent; onClose: () => void }) {
   return (
     <SideSheet label="Concierge" closeLabel="Close request form" titleId="booking-title" onClose={onClose}>
-      <BookingForm vehicleId={vehicleId} locationId={locationId} onDone={onClose} autoFocus delay={0.35} titleId="booking-title" />
+      <BookingForm
+        vehicleId={intent.vehicleId}
+        locationId={intent.locationId}
+        initialPickup={intent.pickup}
+        initialReturn={intent.returnDate}
+        onDone={onClose}
+        autoFocus
+        delay={0.35}
+        titleId="booking-title"
+      />
     </SideSheet>
   )
+}
+
+// The half-filled form survives the trip to Google in this tab's sessionStorage.
+const DRAFT_KEY = 'veloce:booking-draft'
+const DATE = /^\d{4}-\d{2}-\d{2}$/
+function saveDraft(draft: BookingIntent) {
+  try {
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+  } catch {
+    /* private mode: the form simply starts fresh */
+  }
+}
+function takeDraft(): BookingIntent {
+  try {
+    const raw = JSON.parse(sessionStorage.getItem(DRAFT_KEY) ?? '{}')
+    sessionStorage.removeItem(DRAFT_KEY)
+    const pick = (v: unknown) => (typeof v === 'string' && v.length <= 40 ? v : undefined)
+    const date = (v: unknown) => (typeof v === 'string' && DATE.test(v) && v >= iso(new Date()) ? v : undefined)
+    const pickup = date(raw.pickup)
+    const returnDate = date(raw.returnDate)
+    return {
+      vehicleId: vehicleById(pick(raw.vehicleId) ?? '') ? raw.vehicleId : undefined,
+      locationId: locations.some((l) => l.id === raw.locationId) ? raw.locationId : undefined,
+      ...(pickup && returnDate && returnDate > pickup ? { pickup, returnDate } : {}),
+    }
+  } catch {
+    return {}
+  }
 }
 
 const iso = (d: Date) => d.toISOString().slice(0, 10)
@@ -42,6 +89,8 @@ const nights = (a: string, b: string) => Math.max(1, Math.round((+new Date(b + '
 type FormProps = {
   vehicleId?: string
   locationId?: string
+  initialPickup?: string
+  initialReturn?: string
   onDone?: () => void
   autoFocus?: boolean
   delay?: number
@@ -55,13 +104,14 @@ type FormProps = {
  * Saved by the backend (POST /api/bookings), which returns the reference.
  * A one-line summary keeps the choice concrete, and warns when the car is taken.
  */
-export function BookingForm({ vehicleId, locationId, onDone, autoFocus, delay = 0, titleId, inline = false }: FormProps) {
+export function BookingForm({ vehicleId, locationId, initialPickup, initialReturn, onDone, autoFocus, delay = 0, titleId, inline = false }: FormProps) {
+  const account = useAccount()
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [vehicle, setVehicle] = useState(vehicleId ?? '')
   const [city, setCity] = useState(locationId ?? locations[0].id)
   const [today] = useState(() => iso(new Date()))
-  const [pickup, setPickup] = useState(() => addDays(iso(new Date()), 7))
-  const [ret, setRet] = useState(() => addDays(iso(new Date()), 9))
+  const [pickup, setPickup] = useState(() => initialPickup ?? addDays(iso(new Date()), 7))
+  const [ret, setRet] = useState(() => initialReturn ?? addDays(iso(new Date()), 9))
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   // Honeypot: invisible to people, so only bots fill it in. The server drops requests where it is set.
@@ -70,6 +120,14 @@ export function BookingForm({ vehicleId, locationId, onDone, autoFocus, delay = 
   const [error, setError] = useState('')
   const [available, setAvailable] = useState<boolean | null>(null)
   const firstId = useId()
+
+  // Signed in with Google: fill in the guest's details, without overwriting anything they typed.
+  const user = account.user
+  useEffect(() => {
+    if (!user) return
+    setName((n) => n || user.name)
+    setEmail((e) => e || user.email)
+  }, [user])
 
   useEffect(() => {
     if (!autoFocus) return
@@ -143,6 +201,20 @@ export function BookingForm({ vehicleId, locationId, onDone, autoFocus, delay = 
                 Choose a car, a city and your dates. A concierge confirms within two hours.
               </motion.p>
             </>
+          )}
+
+          {account.google && !user && (
+            <motion.p variants={fadeUp} className={`meta text-ash ${inline ? 'mb-6' : 'mt-6'}`}>
+              <a
+                href={googleSignInUrl('/#book')}
+                onClick={() => saveDraft({ vehicleId: vehicle || undefined, locationId: city, pickup, returnDate: ret })}
+                className="link-underline inline-flex items-center gap-2 text-ink"
+              >
+                <GoogleMark className="h-3.5 w-3.5" />
+                Continue with Google
+              </a>{' '}
+              to fill in your details.
+            </motion.p>
           )}
 
           <div className={`grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2 ${inline ? '' : 'mt-10'}`}>
@@ -224,7 +296,7 @@ export function BookingForm({ vehicleId, locationId, onDone, autoFocus, delay = 
               {status === 'sending' ? 'Sending request' : 'Request a drive'}
             </Button>
             <p className={`meta text-center ${error ? 'text-ink' : 'text-ash'}`} role={error ? 'alert' : undefined}>
-              {error || 'No payment now. A concierge replies within two hours.'}
+              {error || (account.notice && !user ? noticeCopy[account.notice] : 'No payment now. A concierge replies within two hours.')}
             </p>
           </motion.div>
         </motion.form>

@@ -5,6 +5,7 @@ import { useStageUI } from '../three/store'
 import { navLinks } from '../data/content'
 import { useNavState } from '../hooks/useNavState'
 import { scrollToHash } from '../hooks/scrollTo'
+import { useAccount } from '../hooks/useAccount'
 import { useSite } from '../hooks/useSite'
 import { Button } from './Button'
 import { MobileMenu } from './MobileMenu'
@@ -19,6 +20,7 @@ import { Wordmark } from './Wordmark'
 export function Navbar() {
   const { theme, active, scrolled } = useNavState()
   const { openBooking } = useSite()
+  const account = useAccount()
   const [menuOpen, setMenuOpen] = useState(false)
   const reduce = useReducedMotion()
   // The navigation waits for the opening logo to leave.
@@ -108,7 +110,15 @@ export function Navbar() {
             })}
           </ul>
 
-          <div className="hidden lg:block">
+          <div className="hidden items-center gap-7 lg:flex">
+            {account.google && (
+              <a
+                href="#account"
+                className="label inline-flex h-11 items-center opacity-70 transition-opacity duration-200 ease-[var(--ease-ui)] hover:opacity-100 focus-visible:opacity-100"
+              >
+                {account.user ? account.user.name.split(' ')[0] || 'Account' : 'Sign in'}
+              </a>
+            )}
             <Button size="sm" tone={light ? 'onLight' : 'onDark'} onClick={() => openBooking()}>
               Book a drive
             </Button>

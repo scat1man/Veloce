@@ -31,5 +31,12 @@ services:
         sync: false
       - key: OWNER_EMAIL
         sync: false
+      # Optional "Sign in with Google" (see DEPLOY.md). Leave all three empty to switch it off.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: ADMIN_GOOGLE_EMAILS    # Google accounts allowed into /admin, comma-separated
+        sync: false
       - key: TRUST_PROXY            # Render puts one proxy in front of the app
         value: "1"

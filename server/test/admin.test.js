@@ -90,7 +90,7 @@ describe('admin', () => {
   })
 
   test('session endpoint reports expiry and the catalogue only when signed in', async () => {
-    assert.deepEqual(await (await fetch(`${srv.base}/api/admin/session`)).json(), { authenticated: false })
+    assert.deepEqual(await (await fetch(`${srv.base}/api/admin/session`)).json(), { authenticated: false, google: false })
     const me = await (await fetch(`${srv.base}/api/admin/session`, { headers: { Cookie: cookie } })).json()
     assert.equal(me.authenticated, true)
     assert.ok(Date.parse(me.expiresAt) > Date.now())

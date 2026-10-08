@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 /** Panels that open from a link anywhere on the page: <a href="#privacy">. */
-export const panelHashes = ['manage', 'privacy', 'terms'] as const
+export const panelHashes = ['account', 'manage', 'privacy', 'terms'] as const
 export type PanelId = (typeof panelHashes)[number]
 
 const read = (): PanelId | null => {
@@ -10,7 +10,7 @@ const read = (): PanelId | null => {
 }
 
 /**
- * Hash routes without a router: #manage, #privacy and #terms open a side sheet,
+ * Hash routes without a router: #account, #manage, #privacy and #terms open a side sheet,
  * so they can be linked to, bookmarked and closed with the back button.
  */
 export function useHashPanel() {

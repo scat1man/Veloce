@@ -71,3 +71,21 @@ export const lookupBooking = (reference: string, email: string) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ reference: reference.trim().toUpperCase(), email: email.trim() }),
   })
+
+// ---- Guest accounts: "Continue with Google" ----
+
+export type Account = { google: boolean; user: { name: string; email: string } | null }
+
+/** Whether Google sign-in is switched on, and who is signed in (if anyone). */
+export const getAccount = () => call<Account>('/api/account')
+
+/** Every booking made with the signed-in guest's email. */
+export const getMyBookings = () => call<BookingSummary[]>('/api/account/bookings')
+
+export const signOut = () => call<{ ok: true }>('/api/account/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+
+/**
+ * Where "Continue with Google" goes: the server sends the visitor to Google and,
+ * once they are signed in, back to `returnTo` on this site.
+ */
+export const googleSignInUrl = (returnTo: string) => `/auth/google?${new URLSearchParams({ return: returnTo })}`

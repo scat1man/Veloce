@@ -6,6 +6,27 @@ const caps = document.getElementById('caps')
 const reveal = document.getElementById('reveal')
 const button = form.querySelector('.submit')
 
+// What came back from "Continue with Google", if anything.
+const googleOutcome = {
+  denied: 'That Google account is not on the staff list.',
+  failed: 'Google sign-in did not complete. Please try again.',
+  locked: 'Too many failed sign-ins. Try again later.',
+}[new URLSearchParams(location.search).get('google')]
+if (googleOutcome) {
+  error.textContent = googleOutcome
+  history.replaceState(null, '', location.pathname)
+}
+
+// Show the Google option only when the server has it switched on. A session may already exist
+// (e.g. the Google sign-in landed here): then go straight to the console.
+fetch('/api/admin/session')
+  .then((res) => res.json())
+  .then((session) => {
+    if (session.authenticated) return location.replace('/admin')
+    document.getElementById('google').hidden = !session.google
+  })
+  .catch(() => {})
+
 reveal.addEventListener('click', () => {
   const show = input.type === 'password'
   input.type = show ? 'text' : 'password'

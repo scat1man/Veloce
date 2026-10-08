@@ -42,5 +42,6 @@ export default defineConfig({
   build: { copyPublicDir: false },
   // The backend (server/index.js) runs on :3001. Forwarding /api through Vite keeps
   // the browser on one origin, so the frontend can call fetch('/api/...') as-is.
-  server: { proxy: { '/api': 'http://localhost:3001' } },
+  // /auth is "Sign in with Google", which must also come back to this same origin.
+  server: { proxy: { '/api': 'http://localhost:3001', '/auth': 'http://localhost:3001' } },
 })

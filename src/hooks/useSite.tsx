@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 
-type BookingIntent = { vehicleId?: string; locationId?: string }
+export type BookingIntent = { vehicleId?: string; locationId?: string; pickup?: string; returnDate?: string }
 
 type SiteContextValue = {
   booking: BookingIntent | null

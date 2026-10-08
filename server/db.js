@@ -72,6 +72,27 @@ export function openDb(dataDir) {
       salt        TEXT    NOT NULL
     );
   `)
+  // Guests who signed in with Google. `google_sub` is Google's permanent id for the account;
+  // the email is Google-verified and refreshed on every sign-in.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS customers (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      google_sub    TEXT    NOT NULL UNIQUE,
+      email         TEXT    NOT NULL,   -- stored lowercase
+      name          TEXT    NOT NULL DEFAULT '',
+      created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+      last_login_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+    -- Like admin sessions: only the hash of the cookie's random id is stored.
+    CREATE TABLE IF NOT EXISTS customer_sessions (
+      id_hash     TEXT    PRIMARY KEY,
+      customer_id INTEGER NOT NULL REFERENCES customers (id) ON DELETE CASCADE,
+      expires_at  INTEGER NOT NULL,     -- unix ms
+      created_at  INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS bookings_email ON bookings (email);
+  `)
+  db.exec('PRAGMA foreign_keys = ON')
 
   // Older databases may hold mixed-case emails; lookups compare lowercase.
   db.exec('UPDATE bookings SET email = lower(email) WHERE email != lower(email)')

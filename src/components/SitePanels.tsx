@@ -3,17 +3,23 @@ import { createPortal } from 'react-dom'
 import { fadeUp, maskLine, stagger } from '../animations/variants'
 import { privacy, terms, type LegalDoc } from '../data/legal'
 import { useHashPanel } from '../hooks/useHashPanel'
+import { AccountPanel } from './AccountPanel'
 import { Button } from './Button'
 import { ManageBooking } from './ManageBooking'
 import { SideSheet } from './SideSheet'
 
 const TITLE_ID = 'site-panel-title'
 
-/** The sheets opened by #manage, #privacy and #terms links. */
+/** The sheets opened by #account, #manage, #privacy and #terms links. */
 export function SitePanels() {
   const { panel, close } = useHashPanel()
   return createPortal(
     <AnimatePresence>
+      {panel === 'account' && (
+        <SideSheet key="account" label="Account" closeLabel="Close account" titleId={TITLE_ID} onClose={close}>
+          <AccountPanel titleId={TITLE_ID} onDone={close} />
+        </SideSheet>
+      )}
       {panel === 'manage' && (
         <SideSheet key="manage" label="Manage a booking" closeLabel="Close booking lookup" titleId={TITLE_ID} onClose={close}>
           <ManageBooking titleId={TITLE_ID} onDone={close} />
