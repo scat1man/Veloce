@@ -1,6 +1,6 @@
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
 import { ChevronRight } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { RevealText } from '../animations/RevealText'
 import { duration, ease, spring } from '../animations/tokens'
@@ -12,6 +12,13 @@ import { vehicles, type Vehicle } from '../data/vehicles'
 import { useStageUI } from '../three/store'
 
 const cityOf = (v: Vehicle) => v.location.split(',')[0]
+
+/** Each car's 3D view has its own address (#car/sf90), so it can be shared and Back closes it. */
+const CAR_HASH = '#car/'
+const carFromHash = () => {
+  const id = window.location.hash.startsWith(CAR_HASH) ? window.location.hash.slice(CAR_HASH.length) : ''
+  return vehicles.some((v) => v.id === id) ? id : null
+}
 const cities = [...new Set(vehicles.map(cityOf))]
 
 /**
@@ -22,10 +29,32 @@ const cities = [...new Set(vehicles.map(cityOf))]
  */
 export function ShowroomSection() {
   const [city, setCity] = useState<string | null>(null)
-  const [openedId, setOpenedId] = useState<string | null>(null)
+  const [openedId, setOpenedId] = useState<string | null>(carFromHash)
+  const pushed = useRef(false)
   const webgl = useStageUI((st) => st.webgl)
   const shown = useMemo(() => (city ? vehicles.filter((v) => cityOf(v) === city) : vehicles), [city])
-  const close = useCallback(() => setOpenedId(null), [])
+  const open = useCallback((id: string) => {
+    setOpenedId(id)
+    window.history.pushState(null, '', CAR_HASH + id)
+    pushed.current = true
+  }, [])
+  const close = useCallback(() => {
+    setOpenedId(null)
+    if (!window.location.hash.startsWith(CAR_HASH)) return
+    if (pushed.current) window.history.back()
+    else window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    pushed.current = false
+  }, [])
+
+  // Back and Forward open and close the 3D view.
+  useEffect(() => {
+    const onPop = () => {
+      pushed.current = false
+      setOpenedId(carFromHash())
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   return (
     <section id="showroom" data-nav-theme="light" aria-labelledby="showroom-title" className="relative bg-paper text-ink">
@@ -40,7 +69,7 @@ export function ShowroomSection() {
         {/* Floor filter */}
         <div className="mt-12 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 md:mt-16">
           <LayoutGroup id="showroom-filter">
-            <ul className="flex max-w-full flex-nowrap items-center gap-x-1 overflow-x-auto [scrollbar-width:none] md:flex-wrap" aria-label="Filter by city">
+            <ul className="-mx-5 flex flex-nowrap items-center gap-x-1 overflow-x-auto px-5 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0" aria-label="Filter by city">
               {[null, ...cities].map((c) => {
                 const on = c === city
                 return (
@@ -74,7 +103,7 @@ export function ShowroomSection() {
         >
           {shown.map((v, i) => (
             <motion.li key={v.id} id={`showroom-${v.id}`} layout="position" variants={fadeUp} transition={{ layout: { duration: duration.uiSlow, ease: ease.inOut } }}>
-              <Card v={v} webgl={webgl} onOpen={() => setOpenedId(v.id)} eager={i < 3} />
+              <Card v={v} webgl={webgl} onOpen={() => open(v.id)} eager={i < 3} />
             </motion.li>
           ))}
         </motion.ul>
@@ -112,15 +141,15 @@ function Card({ v, webgl, onOpen, eager }: { v: Vehicle; webgl: boolean; onOpen:
 
       <div className="mt-5 flex items-baseline justify-between gap-4">
         <p className="eyebrow text-ash">{v.manufacturer}</p>
-        <p className="meta text-stone">{cityOf(v)}</p>
+        <p className="meta text-ash">{cityOf(v)}</p>
       </div>
       <h3 className="font-display text-title mt-2">{v.name}</h3>
 
       <dl className="mt-3 grid grid-cols-3">
         {figures.map(([k, val]) => (
           <div key={k} className="pt-3">
-            <dt className="text-[0.75rem] text-stone">{k}</dt>
-            <dd className="font-display mt-1 text-[1.0625rem] tracking-[-0.01em]">{val}</dd>
+            <dt className="text-[0.75rem] text-ash">{k}</dt>
+            <dd className="font-display mt-1 text-[1.0625rem] tracking-[-0.01em] tabular-nums">{val}</dd>
           </div>
         ))}
       </dl>

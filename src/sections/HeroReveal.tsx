@@ -1,3 +1,4 @@
+import { Pause, Play } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { ease } from '../animations/tokens'
@@ -41,6 +42,8 @@ export function HeroReveal() {
   const desktop = useIsDesktop()
   const { openBooking } = useSite()
   const [intro, setIntro] = useState(() => !reduce && !seen())
+  // The car turns on its own; visitors can stop it (WCAG 2.2.2 Pause, Stop, Hide).
+  const [turning, setTurning] = useState(true)
 
   // The navigation and scrolling wait for the reveal.
   useEffect(() => {
@@ -73,7 +76,7 @@ export function HeroReveal() {
             <VehicleViewer
               modelId={v.model3d}
               holdDark={intro}
-              framing={desktop ? { distance: 1.2, lookY: 1.0, spin: 0.2, shiftX: 0.18 } : { distance: 1.3, lookY: 0.45, spin: 0.2 }}
+              framing={desktop ? { distance: 1.2, lookY: 1.0, spin: turning ? 0.2 : 0, shiftX: 0.18 } : { distance: 1.3, lookY: 0.45, spin: turning ? 0.2 : 0 }}
               className="absolute inset-0"
               renderFallback={() => <SmartImage image={v.image} priority sizes="100vw" className="h-full w-full" />}
             />
@@ -127,10 +130,25 @@ export function HeroReveal() {
         {specs.map(([k, val]) => (
           <div key={k} className="pr-6">
             <dt className="eyebrow text-[0.6875rem] text-stone">{k}</dt>
-            <dd className="font-display mt-1 text-[1.125rem] tracking-[-0.01em]">{val}</dd>
+            <dd className="font-display mt-1 text-[1.125rem] tracking-[-0.01em] tabular-nums">{val}</dd>
           </div>
         ))}
       </motion.dl>
+
+      {webgl && !reduce && (
+        <motion.button
+          type="button"
+          onClick={() => setTurning((t) => !t)}
+          aria-pressed={!turning}
+          aria-label={turning ? 'Stop the car turning' : 'Turn the car'}
+          className="absolute right-5 top-[calc(4rem+env(safe-area-inset-top))] z-20 flex h-11 w-11 items-center justify-center rounded-full bg-bone/10 text-bone backdrop-blur-md transition-colors hover:bg-bone/20 md:right-10 md:top-auto md:bottom-9"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: intro ? 0 : 1 }}
+          transition={{ duration: 0.8, delay: intro ? 0 : 1 }}
+        >
+          {turning ? <Pause className="h-4 w-4" strokeWidth={2} aria-hidden /> : <Play className="h-4 w-4 translate-x-[1px]" strokeWidth={2} aria-hidden />}
+        </motion.button>
+      )}
 
       <AnimatePresence>{intro && <Intro key="intro" onDone={() => setIntro(false)} />}</AnimatePresence>
     </section>

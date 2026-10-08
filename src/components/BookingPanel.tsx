@@ -221,7 +221,7 @@ export function BookingForm({ vehicleId, locationId, onDone, autoFocus, delay = 
               {status === 'sending' ? 'Sending request' : 'Request a drive'}
             </Button>
             <p className={`meta text-center ${error ? 'text-ink' : 'text-ash'}`} role={error ? 'alert' : undefined}>
-              {error || 'Nothing is charged until a concierge confirms.'}
+              {error || 'No payment now. A concierge replies within two hours.'}
             </p>
           </motion.div>
         </motion.form>

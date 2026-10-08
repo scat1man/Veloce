@@ -165,6 +165,9 @@ html.lenis body {
     background: var(--color-ink);
     color: var(--color-bone);
     scrollbar-gutter: stable;
+    /* Anchors and keyboard focus land clear of the fixed header and the phone booking bar. */
+    scroll-padding-top: 5.5rem;
+    scroll-padding-bottom: 5rem;
     -webkit-text-size-adjust: 100%;
   }
   body {

@@ -31,7 +31,7 @@ export type ViewerProps = {
   onReady?: () => void
   /**
    * Preview framing: `distance` scales how far the camera sits; `lookY` raises the aim (the car sits lower);
-   * `spin` turns the camera continuously around the car (radians per second) instead of swaying;
+   * `spin` turns the camera continuously around the car (radians per second) instead of swaying (0 holds it still);
    * `shiftX` slides the car sideways in the frame (fraction of the width; positive moves it right).
    */
   framing?: { distance?: number; lookY?: number; spin?: number; shiftX?: number }
@@ -218,7 +218,7 @@ function ViewerScene({
         </Suspense>
         </group>
       </ModelBoundary>
-      {mode === 'interactive' ? <OrbitRig reduce={reduce} /> : <DriftRig reduce={reduce} distance={framing?.distance ?? 1} lookY={framing?.lookY ?? TARGET.y} spin={framing?.spin ?? 0} shiftX={framing?.shiftX ?? 0} />}
+      {mode === 'interactive' ? <OrbitRig reduce={reduce} /> : <DriftRig reduce={reduce} distance={framing?.distance ?? 1} lookY={framing?.lookY ?? TARGET.y} spin={framing?.spin} shiftX={framing?.shiftX ?? 0} />}
     </>
   )
 }
@@ -229,7 +229,7 @@ function Mark({ onMount }: { onMount: () => void }) {
 }
 
 /** Preview camera: a slow orbital drift, or a continuous turn when `spin` is set (camera moves, car stays put) + pointer parallax. */
-function DriftRig({ reduce, distance, lookY, spin, shiftX }: { reduce: boolean; distance: number; lookY: number; spin: number; shiftX: number }) {
+function DriftRig({ reduce, distance, lookY, spin, shiftX }: { reduce: boolean; distance: number; lookY: number; spin?: number; shiftX: number }) {
   const { camera, pointer, size } = useThree()
   // Slide the picture, not the camera, so the car stays centred on its own axis while it turns.
   useEffect(() => {
@@ -239,15 +239,18 @@ function DriftRig({ reduce, distance, lookY, spin, shiftX }: { reduce: boolean; 
     return () => cam.clearViewOffset()
   }, [camera, size.width, size.height, shiftX])
   const t0 = useRef(0)
+  const turned = useRef(0)
   const p = useRef(new THREE.Vector3())
   const aim = useRef(new THREE.Vector3())
   useFrame((_, dt) => {
     dt = Math.min(dt, 1 / 20)
     // A slow sway around the front three-quarter, or a steady turn all the way round.
     if (!reduce) t0.current += dt
+    // A turning rig keeps its angle when the turn is paused (spin 0), so the car holds still where it is.
+    if (!reduce && spin) turned.current += dt * spin
     // Fit the car's three-quarter silhouette (~4.8 m) to the frame width, whatever its shape.
     const dist = THREE.MathUtils.clamp(12 / (size.width / size.height), 8.2, 16) * distance
-    const a = 0.72 + (reduce ? 0 : (spin ? t0.current * spin : Math.sin(t0.current * 0.11) * 0.1) + pointer.x * 0.14)
+    const a = 0.72 + (reduce ? 0 : (spin !== undefined ? turned.current : Math.sin(t0.current * 0.11) * 0.1) + pointer.x * 0.14)
     const h = 1.55 + (reduce ? 0 : pointer.y * 0.25)
     p.current.set(Math.sin(a) * dist, h, Math.cos(a) * dist)
     if (reduce) camera.position.copy(p.current)

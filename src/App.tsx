@@ -2,6 +2,7 @@ import { MotionConfig } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { BookingPanel } from './components/BookingPanel'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { MobileBookBar } from './components/MobileBookBar'
 import { Navbar } from './components/Navbar'
 import { SitePanels } from './components/SitePanels'
 import { startSmoothScroll } from './hooks/smoothScroll'
@@ -53,6 +54,7 @@ export default function App() {
             <ConciergeSection />
           </main>
           <Footer />
+          <MobileBookBar />
           <BookingPanel />
           <SitePanels />
         </div>

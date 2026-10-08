@@ -96,7 +96,7 @@ export function LocationsSection() {
                       <motion.span variants={maskLine} className="block">
                         <span
                           className={`font-display block text-[clamp(2.25rem,4.4vw,4rem)] leading-[1.05] tracking-[-0.035em] transition-[color,transform] duration-500 ease-[var(--ease-out-expo)] ${
-                            on ? 'translate-x-3 text-bone' : 'text-bone/30 group-hover:translate-x-1.5 group-hover:text-bone/75'
+                            on ? 'translate-x-3 text-bone' : 'text-bone/45 group-hover:translate-x-1.5 group-hover:text-bone/75'
                           }`}
                         >
                           {l.city}

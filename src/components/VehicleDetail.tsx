@@ -288,7 +288,7 @@ function VehicleInfo({ vehicle: v, onReserve }: { vehicle: Vehicle; onReserve: (
           {specs.map(([k, val]) => (
             <div key={k} className="flex items-baseline justify-between gap-6 py-2">
               <dt className="text-[0.875rem] text-stone">{k}</dt>
-              <dd className="text-right text-[0.9375rem] font-medium tracking-[-0.01em]">{val}</dd>
+              <dd className="text-right text-[0.9375rem] font-medium tracking-[-0.01em] tabular-nums">{val}</dd>
             </div>
           ))}
         </dl>
@@ -297,7 +297,7 @@ function VehicleInfo({ vehicle: v, onReserve }: { vehicle: Vehicle; onReserve: (
         <Button onClick={onReserve}>Book this car</Button>
       </motion.div>
       <motion.p variants={fadeUp} className="meta mt-4 text-stone">
-        Nothing is charged until a concierge confirms your dates.
+        No payment now. A concierge confirms your dates within two hours.
       </motion.p>
     </motion.div>
   )
