@@ -80,6 +80,8 @@ server/
   security.js   security headers (CSP etc.), rate limiting, HTTPS redirect
   auth.js       admin sign-in, sessions, CSRF checks
   bookings.js   validation, overlap check, database queries
+  mailer.js     sends email over Brevo's or Resend's HTTPS API (off until a key is set)
+  emails.js     the booking emails: request received, confirmed, declined, new request for the owner
   db.js         opens $DATA_DIR/veloce.db, creates tables, retention clean-up
   catalog.js    bookable car and city ids (mirror of src/data)
   admin.html, login.html, public/   concierge pages at /admin
@@ -95,6 +97,10 @@ src/api.ts      the frontend's fetch helpers
 | POST | `/api/admin/login` · `/api/admin/logout` | Admin session (HttpOnly cookie) |
 | GET | `/api/admin/bookings` | All bookings (admin) |
 | PATCH | `/api/admin/bookings/:reference` | `{ status: pending \| confirmed \| cancelled }` (admin) |
+
+Booking emails are optional: set `BREVO_API_KEY` (or `RESEND_API_KEY`), `EMAIL_FROM` and
+`OWNER_EMAIL` to turn them on (steps in [DEPLOY.md](DEPLOY.md#booking-emails-optional)). They go
+out after the response, so a slow or failing provider never affects a booking.
 
 ### Security
 

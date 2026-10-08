@@ -201,6 +201,32 @@ Render notices the push and redeploys by itself within a few minutes (watch the 
 Render → your service → **Environment** → edit `ADMIN_PASSWORD` → **Save**. It restarts with
 the new password.
 
+### Booking emails (optional)
+With this on, guests get an email when they send a request and again when you confirm or
+decline it in the console, and you get one for every new request. Without it the site works
+the same, just silently. Render's free plan blocks normal mail servers (SMTP), so the site
+sends through **Brevo**, which works over HTTPS and is free for 300 emails a day. No domain needed.
+
+1. Sign up at <https://www.brevo.com> (free plan).
+2. **Senders, Domains & Dedicated IPs** → **Senders** → **Add a sender**: enter the name guests
+   should see and your email address (a Gmail works). Click the link Brevo emails you.
+3. Top-right menu → **SMTP & API** → **API Keys** → **Generate a new API key**. Copy it.
+4. Render → your service → **Environment** → add:
+
+   | Key | Value |
+   |---|---|
+   | `BREVO_API_KEY` | the key from step 3 |
+   | `EMAIL_FROM` | the sender address you verified in step 2 |
+   | `OWNER_EMAIL` | where new requests should go (guests' replies land here too) |
+
+5. **Save**. Render restarts the site; make a test booking with your own email.
+
+Not arriving? Check spam first, then Render → **Logs** and search for `[email]`: it shows
+what Brevo answered (an unverified sender is the usual cause). Links in the emails point to
+your Render address; set `SITE_URL` if you add your own domain. Optional: `EMAIL_FROM_NAME`
+(default `VELOCÉ`). For a client with their own domain, Resend also works: set
+`RESEND_API_KEY` instead of `BREVO_API_KEY`, with an `EMAIL_FROM` on that verified domain.
+
 ### Free plan limits in practice
 - **Sleep:** after 15 minutes without visitors it sleeps; the next visitor waits about 1 minute.
 - **750 free hours per month** across all your free services — enough for one site running all month.

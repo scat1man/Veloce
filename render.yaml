@@ -24,5 +24,12 @@ services:
       # ADMIN_PASSWORD_HASH and delete ADMIN_PASSWORD. The hash wins when both are set.
       - key: ADMIN_PASSWORD_HASH
         sync: false
+      # Booking emails (optional, see DEPLOY.md): leave empty to keep them off.
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: OWNER_EMAIL
+        sync: false
       - key: TRUST_PROXY            # Render puts one proxy in front of the app
         value: "1"

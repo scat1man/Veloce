@@ -2,6 +2,7 @@
 // In production a weak or missing admin password stops the server before it listens.
 import { fileURLToPath } from 'node:url'
 import { parseHash } from './auth.js'
+import { EMAIL_PROVIDERS } from './mailer.js'
 
 export const DEV_PASSWORD = 'veloce'
 const MIN_PASSWORD = 12
@@ -38,6 +39,8 @@ export function loadConfig(env = process.env, overrides = {}) {
       throw new ConfigError(`ADMIN_PASSWORD is too short (${adminPassword.length} characters). Use at least ${MIN_PASSWORD}.`)
   }
 
+  const { email, emailProblem } = emailSettings(env, overrides)
+
   return {
     production,
     port: Number(overrides.port ?? env.PORT) || 3001,
@@ -54,6 +57,43 @@ export function loadConfig(env = process.env, overrides = {}) {
     distDir: overrides.distDir ?? fileURLToPath(new URL('../dist/', import.meta.url)),
     // Tests can lower or raise limits; production uses the defaults in app.js.
     limits: overrides.limits ?? {},
+    // Booking emails: null when off. See emailSettings() below.
+    email,
+    emailProblem,
+    // Who hears about new requests (also the Reply-To on guest emails).
+    ownerEmail: overrides.ownerEmail ?? email?.replyTo ?? null,
+    // Links in emails. Render sets RENDER_EXTERNAL_URL by itself; SITE_URL wins (e.g. a custom domain).
+    // Never taken from the request's Host header, which a visitor controls.
+    siteUrl: (overrides.siteUrl ?? env.SITE_URL ?? env.RENDER_EXTERNAL_URL)?.trim() || null,
     log: overrides.log ?? ((line) => console.log(line)),
+  }
+}
+
+const ADDRESS = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/
+
+/**
+ * Emails switch on when an API key and a sender address are set:
+ *   BREVO_API_KEY or RESEND_API_KEY, plus EMAIL_FROM (an address verified with that provider).
+ * A half-finished setup never stops the site: emails stay off and `emailProblem` says why.
+ */
+function emailSettings(env, overrides) {
+  if (overrides.email !== undefined) return { email: overrides.email, emailProblem: null }
+  const keys = EMAIL_PROVIDERS.map((provider) => [provider, env[`${provider.toUpperCase()}_API_KEY`]?.trim()]).filter(([, key]) => key)
+  if (!keys.length) return { email: null, emailProblem: null }
+  const [provider, apiKey] = keys[0]
+  const from = env.EMAIL_FROM?.trim()
+  if (!from || !ADDRESS.test(from))
+    return { email: null, emailProblem: `${provider.toUpperCase()}_API_KEY is set but EMAIL_FROM is ${from ? 'not an email address' : 'missing'}, so emails are off.` }
+  const replyTo = env.OWNER_EMAIL?.trim()
+  return {
+    email: {
+      provider,
+      apiKey,
+      from,
+      fromName: env.EMAIL_FROM_NAME?.trim().replace(/[\r\n<>"]/g, '') || 'VELOCÉ',
+      // Guests who reply reach the owner, not the sending address.
+      replyTo: replyTo && ADDRESS.test(replyTo) ? replyTo : null,
+    },
+    emailProblem: null,
   }
 }

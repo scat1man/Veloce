@@ -23,6 +23,9 @@ on this repository. Do not open a public issue.
   invisible direction characters in names), parameterised SQL, JSON bodies capped at 10 KB.
 - Output is escaped in the console; CSV exports neutralise spreadsheet formulas.
 - No file uploads anywhere, so there is no way to upload malware to the server.
+- Booking emails escape every guest-supplied value, take their links from `SITE_URL` (never the
+  request's Host header), and reach any one inbox at most 3 times an hour from the public form.
+  The email API key lives only in the host's environment settings.
 
 **Headers**
 - Content Security Policy: scripts only from the site itself; a tighter policy on the admin pages and a

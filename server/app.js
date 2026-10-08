@@ -11,6 +11,8 @@ import { createBookingStore, LIMITS, newReference, validate } from './bookings.j
 import { cities, vehicles } from './catalog.js'
 import { loadConfig } from './config.js'
 import { openDb } from './db.js'
+import { bookingCancelled, bookingConfirmed, bookingReceived, ownerNewBooking } from './emails.js'
+import { createMailer } from './mailer.js'
 import { RateLimiter, rateLimit, sameOrigin, securityHeaders, tooMany } from './security.js'
 
 const MINUTE = 60_000
@@ -25,6 +27,8 @@ const DEFAULT_LIMITS = {
   bookingsGlobal: { limit: 60, windowMs: 60 * MINUTE },
   // Every API call from one IP, as a ceiling against scripted floods.
   api: { limit: 300, windowMs: MINUTE },
+  // Anyone can type anyone's address into the form: at most this many request emails reach one inbox.
+  emailRecipient: { limit: 3, windowMs: 60 * MINUTE },
 }
 const EVERYONE = '*'
 const FAILED_LOGIN_DELAY_MS = 400
@@ -62,6 +66,19 @@ export function createApp(options = {}) {
 
   const limits = { ...DEFAULT_LIMITS, ...config.limits }
   const limiters = Object.fromEntries(Object.entries(limits).map(([name, opts]) => [name, new RateLimiter(opts)]))
+
+  // ---- Emails: sent in the background after the response, so a slow provider never delays anyone ----
+  const mailer = options.mailer ?? createMailer(config.email, { log })
+  if (config.emailProblem) console.warn(`[email] ${config.emailProblem}`)
+  const emailOptions = { siteUrl: config.siteUrl, canReply: Boolean(config.email?.replyTo) }
+  const sendEmail = (to, message, tag) => {
+    if (!mailer.enabled || !to) return
+    mailer.send({ to, ...message, tag }).catch((err) => console.error('[email] failed:', err))
+  }
+  const emailGuest = (booking, template, tag) => {
+    if (!limiters.emailRecipient.hit(booking.email).ok) return audit('email.recipient_capped', { reference: booking.reference })
+    sendEmail(booking.email, template(booking, emailOptions), `${tag} ${booking.reference}`)
+  }
 
   // ---- Housekeeping: forget old bookings and expired sessions, at start and once a day ----
   const retention = () => {
@@ -153,6 +170,8 @@ export function createApp(options = {}) {
       return res.status(409).json({ error: 'That car is already booked for those dates. Try other dates or let us advise.' })
     const { note: _note, updatedAt: _updatedAt, ...created } = bookings.createBooking(input)
     res.status(201).json(created)
+    emailGuest(created, bookingReceived, 'request-received')
+    sendEmail(config.ownerEmail, ownerNewBooking(created, emailOptions), `owner-new-request ${created.reference}`)
   })
 
   // Status lookup needs both the reference and the email on the booking, so references
@@ -276,7 +295,12 @@ export function createApp(options = {}) {
     if (body.status !== undefined) {
       const result = bookings.updateStatus(reference, body.status)
       if (result.error) return fail(result)
-      if (result.previous !== body.status) audit('admin.status_change', { ip: req.ip, reference, from: result.previous, to: body.status })
+      if (result.previous !== body.status) {
+        audit('admin.status_change', { ip: req.ip, reference, from: result.previous, to: body.status })
+        // Staff decide when these go out, so they skip the per-inbox cap that guards the public form.
+        const template = { confirmed: bookingConfirmed, cancelled: bookingCancelled }[body.status]
+        if (template) sendEmail(result.booking.email, template(result.booking, emailOptions), `booking-${body.status} ${reference}`)
+      }
       booking = result.booking
     }
     if (body.note !== undefined) {
