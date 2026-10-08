@@ -9,7 +9,7 @@ export const PASSWORD = 'correct horse battery staple'
 export async function start(options = {}) {
   const dataDir = mkdtempSync(join(tmpdir(), 'veloce-test-'))
   const logs = []
-  const { app, close } = createApp({
+  const { app, close, events } = createApp({
     processEnv: {},
     adminPassword: PASSWORD,
     dataDir,
@@ -25,6 +25,7 @@ export async function start(options = {}) {
     base,
     logs,
     dataDir,
+    events,
     async close() {
       await new Promise((resolve) => server.close(resolve))
       server.closeAllConnections?.()

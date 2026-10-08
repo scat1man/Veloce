@@ -268,6 +268,37 @@ the HTTPS certificate automatically.
 
 ---
 
+## Taking deposits online (Stripe, optional)
+
+Guests can pay a deposit for a booking on Stripe's own secure payment page, right after they
+send the request or later from **Manage a booking**. Until you add a Stripe key, the site simply
+takes requests without payment, exactly as before.
+
+**Test mode first (no real money):**
+1. Create a free account at <https://dashboard.stripe.com/register>. You can skip activating
+   payments; test mode works straight away.
+2. In the dashboard, make sure the **Test mode** switch (top right) is on, then open
+   **Developers → API keys** and reveal the **Secret key** (`sk_test_...`).
+3. Render → your service → **Environment** → add `STRIPE_SECRET_KEY` with that value → **Save**.
+   The site redeploys and a "Pay deposit" button appears after a booking.
+4. So that a payment is recorded even if the guest closes the tab: Stripe → **Developers →
+   Webhooks → Add endpoint**. Endpoint URL: `https://YOUR-SITE.onrender.com/api/payments/webhook`.
+   Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded`.
+   Copy its **Signing secret** (`whsec_...`) into Render as `STRIPE_WEBHOOK_SECRET`.
+5. Try it: book a car, press **Pay deposit**, and pay with card `4242 4242 4242 4242`,
+   any future date, any CVC. The booking shows the deposit in the admin console.
+
+**Other settings** (all optional): `PAYMENT_DEPOSIT` is the amount in whole units (default 500),
+`PAYMENT_CURRENCY` a three-letter code (default USD), `SITE_URL` the address Stripe sends guests
+back to (default: the address they are on).
+
+**Refunds** are made in the Stripe dashboard (open the payment → **Refund**); with the webhook set
+up, the booking shows "refunded" in the console. **Going live** means activating the Stripe account
+and swapping in the `sk_live_...` key and a live webhook secret. On the free Render plan bookings
+are wiped on every redeploy (see below), so use a persistent disk before taking real money.
+
+---
+
 ## Keeping bookings permanently
 
 The free Render plan cannot keep files. When you sell a site to a real client, pick one:

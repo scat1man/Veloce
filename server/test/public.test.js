@@ -61,7 +61,8 @@ describe('public booking API', () => {
     const ok = await postJson(`${srv.base}/api/bookings/lookup`, { reference: created.reference.toLowerCase(), email: 'GRACE@navy.mil ' })
     assert.equal(ok.status, 200)
     const found = await ok.json()
-    assert.deepEqual(Object.keys(found).sort(), ['city', 'pickup', 'reference', 'returnDate', 'status', 'vehicle'])
+    assert.deepEqual(Object.keys(found).sort(), ['city', 'payment', 'pickup', 'reference', 'returnDate', 'status', 'vehicle'])
+    assert.deepEqual(found.payment, { status: 'none', amount: null, currency: null })
     assert.equal(found.reference, created.reference)
     assert.equal(found.vehicle, 'Lamborghini Revuelto')
 

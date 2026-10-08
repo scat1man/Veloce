@@ -1,11 +1,12 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useId, useState, type FormEvent } from 'react'
-import { lookupBooking, type BookingStatus, type BookingSummary } from '../api'
+import { confirmPayment, lookupBooking, type BookingStatus, type BookingSummary } from '../api'
 import { duration } from '../animations/tokens'
 import { fadeUp, maskLine, stagger } from '../animations/variants'
 import { brand } from '../data/content'
 import { Button } from './Button'
 import { Field, inputClass } from './BookingPanel'
+import { depositLine, PayDeposit } from './PayDeposit'
 
 const statusCopy: Record<BookingStatus, { label: string; note: string }> = {
   pending: { label: 'Received', note: 'A concierge is reviewing your request and will be in touch shortly.' },
@@ -16,6 +17,21 @@ const statusCopy: Record<BookingStatus, { label: string; note: string }> = {
 const fmtDate = (s: string) =>
   new Date(s + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
+/**
+ * Stripe sends the guest back to /?payment=done&session_id=...#manage (or payment=cancelled&ref=...).
+ * Read those once, then take them out of the address bar so a reload does not repeat them.
+ */
+function takePaymentReturn() {
+  const params = new URLSearchParams(window.location.search)
+  const outcome = params.get('payment')
+  if (!outcome) return null
+  const ret = { outcome, sessionId: params.get('session_id') ?? '', reference: params.get('ref') ?? '' }
+  for (const key of ['payment', 'session_id', 'ref']) params.delete(key)
+  const query = params.toString()
+  history.replaceState(history.state, '', window.location.pathname + (query ? `?${query}` : '') + window.location.hash)
+  return ret
+}
+
 /** "Manage a booking": a guest checks a request with its reference and their email. */
 export function ManageBooking({ titleId, onDone }: { titleId: string; onDone: () => void }) {
   const [reference, setReference] = useState('')
@@ -23,7 +39,26 @@ export function ManageBooking({ titleId, onDone }: { titleId: string; onDone: ()
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<BookingSummary | null>(null)
+  const [justPaid, setJustPaid] = useState(false)
   const firstId = useId()
+
+  useEffect(() => {
+    const ret = takePaymentReturn()
+    if (!ret) return
+    if (ret.outcome === 'cancelled') {
+      setReference(ret.reference.slice(0, 20))
+      setError('Payment cancelled. Nothing was charged. Enter your email to try again.')
+    } else if (ret.outcome === 'done' && ret.sessionId) {
+      setSending(true)
+      confirmPayment(ret.sessionId)
+        .then((booking) => {
+          setResult(booking)
+          setJustPaid(booking.payment.status === 'paid')
+        })
+        .catch((err) => setError((err as Error).message))
+        .finally(() => setSending(false))
+    }
+  }, [])
 
   useEffect(() => {
     const t = setTimeout(() => document.getElementById(firstId)?.focus({ preventScroll: true }), 500)
@@ -117,20 +152,21 @@ export function ManageBooking({ titleId, onDone }: { titleId: string; onDone: ()
             Reference {result.reference}
           </motion.p>
           <div className="mt-5" aria-live="polite">
-            {heading([`${statusCopy[result.status].label}.`])}
+            {heading([justPaid ? 'Deposit received.' : `${statusCopy[result.status].label}.`])}
           </div>
           <motion.p variants={fadeUp} className="mt-6 flex max-w-sm items-start gap-3 text-lede text-ash">
             <span
               className={`mt-[0.6em] h-1.5 w-1.5 shrink-0 rounded-full ${result.status === 'cancelled' ? 'bg-ash' : 'bg-ink'}`}
               aria-hidden
             />
-            {statusCopy[result.status].note}
+            {justPaid ? 'Thank you. The car is held for your dates while a concierge confirms the details.' : statusCopy[result.status].note}
           </motion.p>
           <motion.dl variants={fadeUp} className="mt-8 rounded-[18px] bg-ink/[0.04] px-5 py-2">
             {[
               ['Vehicle', result.vehicle ?? 'Concierge to advise'],
               ['City', result.city],
               ['Dates', `${fmtDate(result.pickup)} → ${fmtDate(result.returnDate)}`],
+              ...(depositLine(result.payment) ? [['Deposit', depositLine(result.payment)!]] : []),
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-6 py-3">
                 <dt className="meta text-ash">{k}</dt>
@@ -138,11 +174,19 @@ export function ManageBooking({ titleId, onDone }: { titleId: string; onDone: ()
               </div>
             ))}
           </motion.dl>
+          {result.status !== 'cancelled' && result.payment?.status === 'none' && email && <PayDeposit reference={result.reference} email={email} />}
           <motion.div variants={fadeUp} className="mt-auto flex flex-wrap gap-x-8 gap-y-2 pt-12">
             <Button tone="onLight" variant="text" onClick={onDone}>
               Back to the site
             </Button>
-            <Button tone="onLight" variant="text" onClick={() => setResult(null)}>
+            <Button
+              tone="onLight"
+              variant="text"
+              onClick={() => {
+                setResult(null)
+                setJustPaid(false)
+              }}
+            >
               Check another
             </Button>
           </motion.div>

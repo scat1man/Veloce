@@ -40,3 +40,6 @@ services:
         sync: false
       - key: TRUST_PROXY            # Render puts one proxy in front of the app
         value: "1"
+      # Online deposits (optional, see DEPLOY.md): add these in the Environment tab when ready.
+      # STRIPE_SECRET_KEY (sk_test_...), STRIPE_WEBHOOK_SECRET (whsec_...),
+      # PAYMENT_DEPOSIT (default 500), PAYMENT_CURRENCY (default USD).

@@ -3,6 +3,7 @@
 import { fileURLToPath } from 'node:url'
 import { parseHash } from './auth.js'
 import { EMAIL_PROVIDERS } from './mailer.js'
+import { paymentSettings } from './payments.js'
 
 export const DEV_PASSWORD = 'veloce'
 const MIN_PASSWORD = 12
@@ -54,6 +55,13 @@ export function loadConfig(env = process.env, overrides = {}) {
     .filter(Boolean)
   for (const email of adminGoogleEmails)
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new ConfigError(`ADMIN_GOOGLE_EMAILS has an invalid address: "${email}".`)
+  // Online deposits switch on when the Stripe key is set (see payments.js); null means off.
+  let payments
+  try {
+    payments = overrides.payments === null ? null : paymentSettings(env, overrides.payments ?? {})
+  } catch (err) {
+    throw new ConfigError(err.message)
+  }
 
   return {
     production,
@@ -72,6 +80,7 @@ export function loadConfig(env = process.env, overrides = {}) {
     sessionHours: Number(overrides.sessionHours ?? env.SESSION_HOURS) || 8,
     retentionDays: Number(overrides.retentionDays ?? env.RETENTION_DAYS) || 180,
     distDir: overrides.distDir ?? fileURLToPath(new URL('../dist/', import.meta.url)),
+    payments,
     // Tests can lower or raise limits; production uses the defaults in app.js.
     limits: overrides.limits ?? {},
     // Booking emails: null when off. See emailSettings() below.

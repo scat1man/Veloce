@@ -2,6 +2,7 @@
 // settings and data folder. server/index.js only loads the config and listens.
 import compression from 'compression'
 import express from 'express'
+import { EventEmitter } from 'node:events'
 import { existsSync } from 'node:fs'
 import { extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -17,12 +18,14 @@ import { bookingCancelled, bookingConfirmed, bookingReceived, ownerNewBooking } 
 import { createMailer } from './mailer.js'
 import { CALLBACK_PATH, createGoogleAuth, safeReturnPath } from './google.js'
 import { parseCookies, RateLimiter, rateLimit, sameOrigin, securityHeaders, tooMany } from './security.js'
+import { createPaymentStore, createStripe, formatMoney } from './payments.js'
 
 const MINUTE = 60_000
 const DAY = 24 * 60 * MINUTE
 const DEFAULT_LIMITS = {
   bookings: { limit: 5, windowMs: 10 * MINUTE },
   lookup: { limit: 10, windowMs: 10 * MINUTE },
+  payments: { limit: 20, windowMs: 10 * MINUTE },
   availability: { limit: 60, windowMs: MINUTE },
   loginFailures: { limit: 5, windowMs: 15 * MINUTE },
   // Site-wide caps, whatever the IP: a botnet spread over many addresses still hits these.
@@ -71,6 +74,26 @@ export function createApp(options = {}) {
   }
   const bookings = createBookingStore(db)
   const analytics = createAnalytics(db)
+  const payments = createPaymentStore(db)
+  const provider = config.payments ? createStripe(config.payments, options.paymentFetch) : null
+  /*
+   * Booking events other parts of the server can react to (confirmation emails, for one).
+   *   'payment.received'  (booking)  a deposit was paid; fired exactly once per booking
+   *   'payment.refunded'  (booking)  the deposit was refunded in full from the Stripe dashboard
+   * `booking` is the full booking as the admin API returns it, including booking.payment.
+   * A listener that throws is logged and never breaks the request that triggered it.
+   */
+  const events = new EventEmitter()
+  const emit = (name, booking) => {
+    for (const listener of events.listeners(name)) {
+      try {
+        const result = listener(booking)
+        if (result && typeof result.catch === 'function') result.catch((err) => console.error(`[events] ${name} listener failed:`, err))
+      } catch (err) {
+        console.error(`[events] ${name} listener failed:`, err)
+      }
+    }
+  }
   const sessions = createSessionStore(db, { hours: config.sessionHours, secret: config.adminSecret })
   const accounts = createAccountStore(db)
   const google = createGoogleAuth({ clientId: config.googleClientId, clientSecret: config.googleClientSecret, fetchImpl: config.fetch })
@@ -148,6 +171,29 @@ export function createApp(options = {}) {
     next()
   })
   app.use('/api', rateLimit(limiters.api))
+
+  // Stripe signs the exact bytes it sends, so this one route reads the raw body,
+  // before the JSON parser below gets to it.
+  app.post('/api/payments/webhook', express.raw({ type: 'application/json', limit: '256kb' }), (req, res) => {
+    if (!provider || !config.payments.webhookSecret) return res.status(404).json({ error: 'Not found.' })
+    if (!provider.webhookSignatureValid(req.body, req.headers['stripe-signature'])) {
+      audit('payment.webhook_bad_signature', { ip: req.ip })
+      return res.status(400).json({ error: 'Bad signature.' })
+    }
+    let event
+    try {
+      event = JSON.parse(req.body.toString('utf8'))
+    } catch {
+      return res.status(400).json({ error: 'Malformed JSON.' })
+    }
+    const update = provider.parseWebhook(event)
+    if (update?.kind === 'paid') paid(update, 'webhook')
+    else if (update?.kind === 'refunded') refunded(update.paymentId)
+    // Anything else (other events, bookings this site no longer has) is acknowledged and ignored,
+    // so Stripe does not keep retrying it.
+    res.json({ received: true })
+  })
+
   // Only real JSON objects or arrays, at most 10 KB; anything else is never parsed.
   app.use(express.json({ limit: '10kb', strict: true, type: 'application/json' }))
 
@@ -217,8 +263,109 @@ export function createApp(options = {}) {
       return res.status(404).json(NO_MATCH)
     const booking = bookings.lookup(reference, email)
     if (!booking) return res.status(404).json(NO_MATCH)
-    const { vehicle, city, pickup, returnDate, status } = booking
-    res.json({ reference: booking.reference, vehicle, city, pickup, returnDate, status })
+    res.json(summary(booking))
+  })
+
+  // ---- Online deposit (Stripe Checkout). Every route answers 404 until the key is set. ----
+
+  // Payments also show in the booking's history in the console.
+  const recordPayment = (event, reference, detail) => {
+    try {
+      activity.record(event, { reference, detail, ip: null })
+    } catch (err) {
+      console.error('[payments] could not store event:', err)
+    }
+  }
+  /** Marks a booking paid from a session Stripe says is paid. Only the first call records and announces it. */
+  const paid = (session, via) => {
+    const expected = payments.expected(session.reference)
+    if (!expected) return false
+    // The figure comes from Stripe, but it must be the deposit this server asked for.
+    if (session.amount !== expected.amount || session.currency !== expected.currency) {
+      audit('payment.amount_mismatch', { reference: session.reference, expected: `${expected.amount} ${expected.currency}`, got: `${session.amount} ${session.currency}` })
+      return false
+    }
+    if (!payments.markPaid(session.reference, session.sessionId, session.paymentId)) return true
+    const booking = bookings.findBooking(session.reference)
+    const amount = formatMoney(booking.payment.amount, booking.payment.currency)
+    audit('payment.received', { reference: booking.reference, amount, via })
+    recordPayment('payment_received', booking.reference, amount)
+    emit('payment.received', booking)
+    return true
+  }
+  const refunded = (paymentId) => {
+    const reference = payments.markRefunded(paymentId)
+    if (!reference) return
+    audit('payment.refunded', { reference })
+    recordPayment('payment_refunded', reference, '')
+    emit('payment.refunded', bookings.findBooking(reference))
+  }
+  const paymentsOff = (_req, res, next) => (provider ? next() : res.status(404).json({ error: 'Online payment is not available.' }))
+  const paymentLimit = rateLimit(limiters.payments, 'Too many payment attempts. Please wait a few minutes and try again.')
+  const summary = (b) => ({
+    reference: b.reference,
+    vehicle: b.vehicle,
+    city: b.city,
+    pickup: b.pickup,
+    returnDate: b.returnDate,
+    status: b.status,
+    payment: { status: b.payment.status, amount: b.payment.amount, currency: b.payment.currency },
+  })
+
+  // What the website needs to offer the deposit.
+  app.get('/api/payments/config', (_req, res) => {
+    if (!provider) return res.json({ enabled: false })
+    const { provider: name, amount, currency, test } = config.payments
+    res.json({ enabled: true, provider: name, amount, currency, test })
+  })
+
+  // Starts a deposit for one booking and returns Stripe's payment page. Like the status lookup,
+  // it needs the reference and the email together. The amount is the server's own setting.
+  app.post('/api/payments/checkout', paymentsOff, paymentLimit, async (req, res) => {
+    const { reference, email } = req.body ?? {}
+    if (!isString(reference) || !isString(email) || !reference.trim() || !email.trim() || reference.length > LIMITS.reference || email.length > LIMITS.email)
+      return res.status(404).json(NO_MATCH)
+    const booking = bookings.lookup(reference, email)
+    if (!booking) return res.status(404).json(NO_MATCH)
+    if (booking.status === 'cancelled') return res.status(409).json({ error: 'This booking was cancelled, so there is nothing to pay.' })
+    if (booking.payment.status !== 'none') return res.status(409).json({ error: 'The deposit for this booking is already paid.' })
+    const { amount, currency, siteUrl } = config.payments
+    const site = siteUrl || config.siteUrl || `${req.protocol}://${req.get('host')}`
+    const ref = encodeURIComponent(booking.reference)
+    try {
+      const { sessionId, url } = await provider.createCheckout({
+        reference: booking.reference,
+        email: booking.email,
+        amount,
+        currency,
+        description: `Reservation deposit, ${booking.vehicle ?? 'Velocé'} (${booking.reference})`,
+        // Stripe fills in {CHECKOUT_SESSION_ID} itself.
+        successUrl: `${site}/?payment=done&session_id={CHECKOUT_SESSION_ID}#manage`,
+        cancelUrl: `${site}/?payment=cancelled&ref=${ref}#manage`,
+      })
+      payments.saveCheckout(booking.reference, sessionId, amount, currency)
+      res.json({ url })
+    } catch (err) {
+      console.error('[payments] checkout failed:', err?.message ?? err)
+      res.status(502).json({ error: 'The payment page could not be opened. Please try again in a moment.' })
+    }
+  })
+
+  // The guest is back from Stripe. The server asks Stripe itself; the browser's word is not enough.
+  // The session id is a long secret only the payer's browser holds.
+  app.post('/api/payments/confirm', paymentsOff, paymentLimit, async (req, res) => {
+    const { sessionId } = req.body ?? {}
+    if (!isString(sessionId) || !/^cs_(test|live)_[A-Za-z0-9]{10,200}$/.test(sessionId)) return res.status(404).json({ error: 'Payment not found.' })
+    let session
+    try {
+      session = await provider.getCheckout(sessionId)
+    } catch (err) {
+      console.error('[payments] confirm failed:', err?.message ?? err)
+      return res.status(502).json({ error: 'We could not check the payment just now. Your booking is safe; check its status again in a minute.' })
+    }
+    if (!session.reference || !bookings.findBooking(session.reference)) return res.status(404).json({ error: 'Payment not found.' })
+    if (session.paid) paid(session, 'return')
+    res.json(summary(bookings.findBooking(session.reference)))
   })
 
   // ---- Concierge admin: password sign-in with a server-side session ----
@@ -320,14 +467,14 @@ export function createApp(options = {}) {
   app.get('/api/admin/bookings.csv', requireAdmin, (req, res) => {
     const cols = [
       ['Reference', 'reference'], ['Status', 'status'], ['Guest', 'name'], ['Email', 'email'], ['Car', 'vehicle'],
-      ['City', 'city'], ['Pick-up', 'pickup'], ['Return', 'returnDate'], ['Received (UTC)', 'createdAt'], ['Note', 'note'],
+      ['City', 'city'], ['Pick-up', 'pickup'], ['Return', 'returnDate'], ['Received (UTC)', 'createdAt'], ['Deposit', 'deposit'], ['Note', 'note'],
     ]
     const cell = (v) => {
       let text = String(v ?? '')
       if (/^[=+\-@\t\r]/.test(text)) text = "'" + text
       return `"${text.replace(/"/g, '""')}"`
     }
-    const lines = [cols.map(([h]) => cell(h)).join(','), ...bookings.listBookings().map((b) => cols.map(([, k]) => cell(b[k])).join(','))]
+    const lines = [cols.map(([h]) => cell(h)).join(','), ...bookings.listBookings().map((b) => cols.map(([, k]) => cell(k === 'deposit' ? depositText(b.payment) : b[k])).join(','))]
     audit('admin.export', { ip: req.ip, rows: lines.length - 1 })
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
     res.setHeader('Content-Disposition', `attachment; filename="veloce-bookings-${new Date().toISOString().slice(0, 10)}.csv"`)
@@ -506,6 +653,7 @@ export function createApp(options = {}) {
   return {
     app,
     config,
+    events,
     close() {
       timers.forEach(clearInterval)
       db.close()
@@ -521,6 +669,7 @@ function withParam(path, key, value) {
   const [base, hash] = i < 0 ? [path, ''] : [path.slice(0, i), path.slice(i)]
   return `${base}${base.includes('?') ? '&' : '?'}${key}=${encodeURIComponent(value)}${hash}`
 }
+const depositText = (p) => (p.status === 'none' ? '' : `${p.status} ${formatMoney(p.amount, p.currency)}`)
 
 /** What a bot sees after filling the honeypot: shaped like a real booking, stored nowhere. */
 function fakeBooking(input) {
@@ -538,6 +687,7 @@ function fakeBooking(input) {
     name: str(input.name, LIMITS.name),
     email: str(input.email, LIMITS.email).toLowerCase(),
     status: 'pending',
+    payment: { status: 'none', amount: null, currency: null, paymentId: null, paidAt: null },
     createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
   }
 }

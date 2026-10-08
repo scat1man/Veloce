@@ -153,5 +153,13 @@ function toJson(row) {
     note: row.note ?? '',
     createdAt: row.created_at,
     updatedAt: row.updated_at ?? null,
+    // Online deposit: status is none | paid | refunded; amount is in the smallest unit (paise, cents).
+    payment: {
+      status: row.payment_status ?? 'none',
+      amount: row.payment_status && row.payment_status !== 'none' ? row.payment_amount : null,
+      currency: row.payment_status && row.payment_status !== 'none' ? row.payment_currency : null,
+      paymentId: row.payment_id ?? null,
+      paidAt: row.paid_at ?? null,
+    },
   }
 }

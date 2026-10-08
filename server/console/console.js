@@ -33,6 +33,16 @@ const fmtDay = (iso, opts = {}) => new Date(iso + 'T12:00:00Z').toLocaleDateStri
 const fmtRange = (b) => `${fmtDay(b.pickup)} – ${fmtDay(b.returnDate)}`
 const nights = (b) => dayNum(b.returnDate) - dayNum(b.pickup)
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+/** "$500" from a booking's online deposit (amount in cents/paise), or '' when none was paid. */
+const deposit = (p) => {
+  if (!p || p.status === 'none' || p.amount == null || !p.currency) return ''
+  try {
+    const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency: p.currency })
+    return fmt.format(p.amount / 10 ** (fmt.resolvedOptions().maximumFractionDigits ?? 2))
+  } catch {
+    return `${(p.amount / 100).toFixed(2)} ${p.currency}`
+  }
+}
 const received = (utc) => new Date(utc.replace(' ', 'T') + 'Z')
 function ago(date) {
   const s = Math.round((Date.now() - date.getTime()) / 1000)
@@ -284,7 +294,7 @@ function renderBookings() {
         <td>${esc(b.city)}</td>
         <td>${esc(fmtRange(b))}<small>${plural(nights(b), 'day')} · pick-up ${esc(until(b.pickup))}</small></td>
         <td>${esc(ago(received(b.createdAt)))}</td>
-        <td>${statusPill(b.status)}</td>
+        <td>${statusPill(b.status)}${b.payment?.status === 'paid' ? `<small>Deposit ${esc(deposit(b.payment))}</small>` : ''}</td>
       </tr>`,
         )
         .join('')
@@ -434,10 +444,12 @@ const EVENTS = {
   note_saved: 'Note saved',
   booking_deleted: 'Booking deleted',
   export: 'Exported bookings to CSV',
+  payment_received: 'Deposit paid',
+  payment_refunded: 'Deposit refunded',
 }
 function eventItem(e, { withRef = true } = {}) {
   const when = received(e.at)
-  const tone = e.event === 'login_failed' || e.event === 'booking_deleted' ? 'bad' : e.detail?.endsWith('confirmed') ? 'good' : ''
+  const tone = e.event === 'login_failed' || e.event === 'booking_deleted' ? 'bad' : e.event === 'payment_received' || e.detail?.endsWith('confirmed') ? 'good' : ''
   // Deleted bookings cannot be opened any more, so their reference is plain text.
   const booking = e.reference && state.bookings.find((b) => b.reference === e.reference)
   const ref = !withRef || !e.reference ? '' : booking ? ` · <a href="#bookings/${esc(e.reference)}">${esc(booking.name)}</a>` : ` · <span class="ref">${esc(e.reference)}</span>`
@@ -540,6 +552,9 @@ function fillDrawer(reset = false) {
     fact('Pick-up', esc(fmtDay(b.pickup, { weekday: 'short', year: 'numeric' })) + ` <span class="hint">${esc(until(b.pickup))}</span>`),
     fact('Return', esc(fmtDay(b.returnDate, { weekday: 'short', year: 'numeric' }))),
     fact('Length', plural(nights(b), 'day')),
+    b.payment && b.payment.status !== 'none'
+      ? fact('Deposit', `${esc(deposit(b.payment))} <span class="hint">${b.payment.status === 'paid' ? 'paid online' : 'refunded'}</span>`)
+      : '',
     fact('Received', esc(received(b.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }))),
     b.updatedAt ? fact('Last change', esc(received(b.updatedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }))) : '',
   ].join('')

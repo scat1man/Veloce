@@ -12,6 +12,7 @@ import { noticeCopy, useAccount } from '../hooks/useAccount'
 import { useSite, type BookingIntent } from '../hooks/useSite'
 import { Button } from './Button'
 import { GoogleMark } from './GoogleButton'
+import { formatMoney, PayDeposit, usePaymentConfig } from './PayDeposit'
 import { SideSheet } from './SideSheet'
 
 /** "Book a drive" — an editorial side sheet (full screen on mobile). */
@@ -120,6 +121,7 @@ export function BookingForm({ vehicleId, locationId, initialPickup, initialRetur
   const [error, setError] = useState('')
   const [available, setAvailable] = useState<boolean | null>(null)
   const firstId = useId()
+  const payments = usePaymentConfig()
 
   // Signed in with Google: fill in the guest's details, without overwriting anything they typed.
   const user = account.user
@@ -296,7 +298,12 @@ export function BookingForm({ vehicleId, locationId, initialPickup, initialRetur
               {status === 'sending' ? 'Sending request' : 'Request a drive'}
             </Button>
             <p className={`meta text-center ${error ? 'text-ink' : 'text-ash'}`} role={error ? 'alert' : undefined}>
-              {error || (account.notice && !user ? noticeCopy[account.notice] : 'No payment now. A concierge replies within two hours.')}
+              {error ||
+                (account.notice && !user
+                  ? noticeCopy[account.notice]
+                  : payments?.enabled
+                    ? `Nothing to pay yet. You can hold the car with a ${formatMoney(payments.amount, payments.currency)} deposit next.`
+                    : 'No payment now. A concierge replies within two hours.')}
             </p>
           </motion.div>
         </motion.form>
@@ -332,6 +339,7 @@ export function BookingForm({ vehicleId, locationId, initialPickup, initialRetur
               </div>
             ))}
           </motion.dl>
+          <PayDeposit reference={reference} email={email} />
           <motion.p variants={fadeUp} className="meta mt-6 text-ash">
             Keep this reference.{' '}
             <a className="link-underline text-ink" href="#manage" onClick={() => onDone?.()}>

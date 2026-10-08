@@ -37,6 +37,11 @@ export function openDb(dataDir) {
   const columns = new Set(db.prepare('PRAGMA table_info(bookings)').all().map((c) => c.name))
   if (!columns.has('note')) db.exec("ALTER TABLE bookings ADD COLUMN note TEXT NOT NULL DEFAULT ''") // staff-only
   if (!columns.has('updated_at')) db.exec('ALTER TABLE bookings ADD COLUMN updated_at TEXT')
+  // Online deposit (server/payments.js). Amounts are in the smallest unit (paise, cents).
+  if (!columns.has('payment_status')) db.exec("ALTER TABLE bookings ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'none'") // none | paid | refunded
+  for (const [name, type] of [['payment_order_id', 'TEXT'], ['payment_id', 'TEXT'], ['payment_amount', 'INTEGER'], ['payment_currency', 'TEXT'], ['paid_at', 'TEXT']])
+    if (!columns.has(name)) db.exec(`ALTER TABLE bookings ADD COLUMN ${name} ${type}`)
+  db.exec('CREATE INDEX IF NOT EXISTS bookings_payment_order ON bookings (payment_order_id)')
 
   // What staff did in the concierge, kept so the console can show an activity log
   // and each booking's history. Purged with the same retention as bookings.
