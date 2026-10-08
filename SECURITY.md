@@ -33,6 +33,11 @@ on this repository. Do not open a public issue.
 - Dotfiles (`.env`, `.git`) are never served. No stack traces or `X-Powered-By`.
 - Slow-client timeouts on the HTTP server.
 
+**Visitor analytics**
+- Counted on this server (`POST /api/events`, `server/analytics.js`): no cookies, no third parties, no raw IPs or user agents stored. A visitor is a hash with a salt that is replaced every day.
+- Only known event kinds, section ids and car ids are accepted; 60 reports/min per IP and 20,000/hour site-wide. Bots, other sites' pages and signed-in staff are not counted. Browsers sending Do Not Track or Global Privacy Control send nothing.
+- Purged with `RETENTION_DAYS`. Only staff can read the summary (`GET /api/admin/analytics`).
+
 **Supply chain**
 - `.npmrc` turns off dependency install scripts, the usual way npm malware runs.
 - CI runs `npm audit` and `npm audit signatures` on every push; Dependabot and CodeQL watch the code.

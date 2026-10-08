@@ -29,6 +29,7 @@
       <a href="#overview" data-view="overview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4zm0 7h6v-5H4zm10 0h6v-9h-6zm0-16v5h6V4z"/></svg><span>Overview</span></a>
       <a href="#bookings" data-view="bookings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2V3h-2v2H9V3zm-2 7h14v9H5z"/></svg><span>Bookings</span><span class="badge" id="pending-badge" hidden></span></a>
       <a href="#fleet" data-view="fleet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11a2 2 0 0 1 2 2v4h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H3v-4a2 2 0 0 1 2-2m2.1 0h9.8l-1-3H8.1z"/></svg><span>Fleet</span></a>
+      <a href="#analytics" data-view="analytics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20a1 1 0 0 1-1-1v-6a1 1 0 0 1 2 0v6a1 1 0 0 1-1 1m5 0a1 1 0 0 1-1-1V5a1 1 0 0 1 2 0v14a1 1 0 0 1-1 1m5 0a1 1 0 0 1-1-1v-9a1 1 0 0 1 2 0v9a1 1 0 0 1-1 1m5 0a1 1 0 0 1-1-1v-4a1 1 0 0 1 2 0v4a1 1 0 0 1-1 1"/></svg><span>Analytics</span></a>
       <a href="#activity" data-view="activity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-2.05-4.95L14 10h7V3l-2.64 2.64A8.96 8.96 0 0 0 12 3m-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg><span>Activity</span></a>
     </nav>
     <div class="side-foot">
@@ -107,6 +108,43 @@
       <div class="cars" id="cars"></div>
     </section>
 
+    <section id="view-analytics" class="view" hidden aria-labelledby="title">
+      <div class="toolbar">
+        <div class="tabs" role="tablist" aria-label="Period" id="range-tabs">
+          <button type="button" role="tab" data-range="7" aria-selected="false">7 days</button>
+          <button type="button" role="tab" data-range="30" aria-selected="true">30 days</button>
+          <button type="button" role="tab" data-range="90" aria-selected="false">90 days</button>
+        </div>
+        <p class="live" id="a-live" aria-live="polite"></p>
+      </div>
+      <div class="stats" id="a-stats"></div>
+      <section class="panel" aria-labelledby="h-visits">
+        <header><h2 id="h-visits">Visitors</h2><span class="hint" id="a-range"></span></header>
+        <div class="chart" id="a-chart"></div>
+      </section>
+      <div class="grid2">
+        <section class="panel" aria-labelledby="h-sources">
+          <header><h2 id="h-sources">Where they come from</h2><span class="hint" id="a-devices"></span></header>
+          <div class="bars" id="a-sources"></div>
+        </section>
+        <section class="panel" aria-labelledby="h-funnel">
+          <header><h2 id="h-funnel">From visit to booking</h2><span class="hint">Share of visitors</span></header>
+          <div class="bars" id="a-funnel"></div>
+        </section>
+      </div>
+      <div class="grid2">
+        <section class="panel" aria-labelledby="h-sections">
+          <header><h2 id="h-sections">How far they read</h2><span class="hint">Share of visitors who reach each part</span></header>
+          <div class="bars" id="a-sections"></div>
+        </section>
+        <section class="panel" aria-labelledby="h-viewed">
+          <header><h2 id="h-viewed">Cars they open</h2><span class="legend"><i class="sw views"></i>Opened <i class="sw confirmed"></i>Booked</span></header>
+          <div class="bars" id="a-cars"></div>
+        </section>
+      </div>
+      <p class="footnote">Counted on this server without cookies or personal data. A visitor is one browser on one day, so a guest who comes back tomorrow counts again. Bots and signed-in staff are left out.</p>
+    </section>
+
     <section id="view-activity" class="view" hidden aria-labelledby="title">
       <section class="panel" aria-labelledby="h-activity">
         <header><h2 id="h-activity">Sign-ins and changes</h2><span class="hint">Newest first</span></header>
@@ -119,6 +157,7 @@
     <a href="#overview" data-view="overview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4zm0 7h6v-5H4zm10 0h6v-9h-6zm0-16v5h6V4z"/></svg>Overview</a>
     <a href="#bookings" data-view="bookings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2V3h-2v2H9V3zm-2 7h14v9H5z"/></svg>Bookings<span class="badge" id="pending-badge-m" hidden></span></a>
     <a href="#fleet" data-view="fleet"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11a2 2 0 0 1 2 2v4h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H3v-4a2 2 0 0 1 2-2m2.1 0h9.8l-1-3H8.1z"/></svg>Fleet</a>
+    <a href="#analytics" data-view="analytics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20a1 1 0 0 1-1-1v-6a1 1 0 0 1 2 0v6a1 1 0 0 1-1 1m5 0a1 1 0 0 1-1-1V5a1 1 0 0 1 2 0v14a1 1 0 0 1-1 1m5 0a1 1 0 0 1-1-1v-9a1 1 0 0 1 2 0v9a1 1 0 0 1-1 1m5 0a1 1 0 0 1-1-1v-4a1 1 0 0 1 2 0v4a1 1 0 0 1-1 1"/></svg>Analytics</a>
     <a href="#activity" data-view="activity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-2.05-4.95L14 10h7V3l-2.64 2.64A8.96 8.96 0 0 0 12 3m-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>Activity</a>
   </nav>
 </div>
@@ -189,6 +228,7 @@
     <dt><kbd>⌘</kbd><kbd>K</kbd></dt><dd>Search and commands</dd>
     <dt><kbd>/</kbd></dt><dd>Search bookings</dd>
     <dt><kbd>G</kbd> then <kbd>O</kbd> <kbd>B</kbd> <kbd>F</kbd> <kbd>A</kbd></dt><dd>Go to Overview, Bookings, Fleet, Activity</dd>
+    <dt><kbd>G</kbd> then <kbd>V</kbd></dt><dd>Go to Analytics (visitors)</dd>
     <dt><kbd>J</kbd> <kbd>K</kbd></dt><dd>Next and previous booking</dd>
     <dt><kbd>Enter</kbd></dt><dd>Open the selected booking</dd>
     <dt><kbd>C</kbd></dt><dd>Confirm the open booking</dd>

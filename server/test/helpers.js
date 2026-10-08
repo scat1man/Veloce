@@ -24,6 +24,7 @@ export async function start(options = {}) {
   return {
     base,
     logs,
+    dataDir,
     async close() {
       await new Promise((resolve) => server.close(resolve))
       server.closeAllConnections?.()

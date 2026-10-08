@@ -7,6 +7,7 @@ import { extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { clearSessionCookie, createSessionStore, passwordMatches, sessionId, setSessionCookie } from './auth.js'
 import { createActivityLog } from './activity.js'
+import { createAnalytics, isBot } from './analytics.js'
 import { createBookingStore, LIMITS, newReference, validate } from './bookings.js'
 import { cities, vehicles } from './catalog.js'
 import { loadConfig } from './config.js'
@@ -29,6 +30,9 @@ const DEFAULT_LIMITS = {
   api: { limit: 300, windowMs: MINUTE },
   // Anyone can type anyone's address into the form: at most this many request emails reach one inbox.
   emailRecipient: { limit: 3, windowMs: 60 * MINUTE },
+  // Analytics reports from the website: plenty for a real visit, and a site-wide ceiling.
+  events: { limit: 60, windowMs: MINUTE },
+  eventsGlobal: { limit: 20_000, windowMs: 60 * MINUTE },
 }
 const EVERYONE = '*'
 const FAILED_LOGIN_DELAY_MS = 400
@@ -62,6 +66,7 @@ export function createApp(options = {}) {
     }
   }
   const bookings = createBookingStore(db)
+  const analytics = createAnalytics(db)
   const sessions = createSessionStore(db, { hours: config.sessionHours, secret: config.adminSecret })
 
   const limits = { ...DEFAULT_LIMITS, ...config.limits }
@@ -86,6 +91,7 @@ export function createApp(options = {}) {
       const removed = bookings.purge(config.retentionDays)
       const expired = sessions.purgeExpired()
       activity.purge(config.retentionDays)
+      analytics.purge(config.retentionDays)
       if (removed || expired) log(`[retention] removed ${removed} booking(s) older than ${config.retentionDays} days, ${expired} expired session(s)`)
     } catch (err) {
       console.error('[retention] failed:', err)
@@ -138,6 +144,22 @@ export function createApp(options = {}) {
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }))
 
+  // Visitor analytics: the website reports page views, sections reached, cars opened and booking
+  // starts. Always 204, so a report that is ignored (bot, staff, over a limit) looks like any other.
+  app.post('/api/events', rateLimit(limiters.events), (req, res) => {
+    if (!sameOrigin(req)) return res.status(204).end()
+    const event = analytics.parse(req.body)
+    if (!event) return res.status(400).json({ error: 'Unknown event.' })
+    if (countable(req) && limiters.eventsGlobal.hit(EVERYONE).ok) {
+      try {
+        analytics.record(req, event)
+      } catch (err) {
+        console.error('[analytics] could not store event:', err)
+      }
+    }
+    res.status(204).end()
+  })
+
   // Live check while the visitor picks a car and dates.
   app.get('/api/availability', rateLimit(limiters.availability), (req, res) => {
     const { vehicleId, pickup, returnDate } = req.query
@@ -169,6 +191,7 @@ export function createApp(options = {}) {
     if (input.vehicleId && !bookings.isAvailable(input.vehicleId, input.pickup, input.returnDate))
       return res.status(409).json({ error: 'That car is already booked for those dates. Try other dates or let us advise.' })
     const { note: _note, updatedAt: _updatedAt, ...created } = bookings.createBooking(input)
+    trackBooking(req, created.vehicleId)
     res.status(201).json(created)
     emailGuest(created, bookingReceived, 'request-received')
     sendEmail(config.ownerEmail, ownerNewBooking(created, emailOptions), `owner-new-request ${created.reference}`)
@@ -190,6 +213,16 @@ export function createApp(options = {}) {
   // ---- Concierge admin: password sign-in with a server-side session ----
 
   const loggedIn = (req) => sessions.valid(sessionId(req))
+  // Bots, and staff looking at their own site while signed in, are left out of the numbers.
+  const countable = (req) => !isBot(String(req.headers['user-agent'] ?? '')) && !loggedIn(req)
+  function trackBooking(req, vehicleId) {
+    if (!countable(req)) return
+    try {
+      analytics.record(req, { kind: 'booking', name: vehicleId ?? 'none' })
+    } catch (err) {
+      console.error('[analytics] could not store booking:', err)
+    }
+  }
   const requireAdmin = (req, res, next) => (loggedIn(req) ? next() : res.status(401).json({ error: 'Please sign in.' }))
   // CSRF: the cookie is SameSite=Strict, and on top of that every state-changing admin
   // request must come from this site's own pages and carry JSON (which plain HTML forms cannot send).
@@ -257,6 +290,12 @@ export function createApp(options = {}) {
     )
   })
   app.get('/api/admin/bookings', requireAdmin, (_req, res) => res.json(bookings.listBookings()))
+
+  // Visitor analytics for the console. ?days=7|30|90
+  app.get('/api/admin/analytics', requireAdmin, (req, res) => {
+    const days = [7, 30, 90].includes(Number(req.query.days)) ? Number(req.query.days) : 30
+    res.json(analytics.summary(days))
+  })
 
   // Activity log: sign-ins and every change made in the console, newest first. ?limit=1..500
   app.get('/api/admin/activity', requireAdmin, (req, res) => res.json(activity.recent(Number.parseInt(req.query.limit, 10) || 200)))

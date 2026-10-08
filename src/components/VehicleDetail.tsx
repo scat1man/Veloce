@@ -10,6 +10,7 @@ import type { SiteImage } from '../data/images'
 
 const VehicleViewer = lazy(() => import('../three/VehicleViewer'))
 import { useSite } from '../hooks/useSite'
+import { trackCar } from '../analytics'
 import { Button } from './Button'
 import { SmartImage } from './SmartImage'
 import { BrandLogo } from './BrandLogo'
@@ -33,6 +34,7 @@ export function VehicleDetail({ openedId, onClose }: Props) {
   const [scrolled, setScrolled] = useState(false)
   const closeRef = useRef<HTMLButtonElement>(null)
   const v = vehicles[index]
+  useEffect(() => trackCar(v.id), [v.id])
   const webgl = useStageUI((st) => st.webgl)
   type Tab = { label: string; kind: '3d' } | { label: string; kind: 'photo'; image: SiteImage }
   const tabs: Tab[] = [

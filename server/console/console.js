@@ -6,12 +6,14 @@ const $ = (id) => document.getElementById(id)
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 const DAY = 864e5
 const STATUSES = ['pending', 'confirmed', 'cancelled']
-const VIEWS = { overview: 'Overview', bookings: 'Bookings', fleet: 'Fleet', activity: 'Activity' }
+const VIEWS = { overview: 'Overview', bookings: 'Bookings', fleet: 'Fleet', analytics: 'Analytics', activity: 'Activity' }
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform)
 
 const state = {
   bookings: [],
   activity: [],
+  analytics: null, // the server's summary for state.range days
+  range: 30,
   vehicles: {},
   view: 'overview',
   filter: 'all',
@@ -69,6 +71,7 @@ async function load({ quiet = false } = {}) {
   try {
     state.bookings = await api('/api/admin/bookings')
     if (state.view === 'activity') state.activity = await api('/api/admin/activity')
+    if (state.view === 'analytics') state.analytics = await api(`/api/admin/analytics?days=${state.range}`)
     state.loadedAt = new Date()
     render()
   } catch (err) {
@@ -118,7 +121,7 @@ function toast(text, { error = false, action, onAction } = {}) {
   setTimeout(() => el.remove(), action ? 6000 : 3200)
 }
 
-// ---------- Routing: #overview, #bookings, #bookings?status=pending, #bookings/VLC-XXXX, #fleet, #activity ----------
+// ---------- Routing: #overview, #bookings, #bookings?status=pending, #bookings/VLC-XXXX, #fleet, #analytics, #activity ----------
 function route() {
   const [path, query] = location.hash.slice(1).split('?')
   const [view, ref] = path.split('/')
@@ -134,6 +137,7 @@ function route() {
   else closeDrawer(false)
   render()
   if (state.view === 'activity') loadActivity()
+  if (state.view === 'analytics' && changed) loadAnalytics()
   if (changed) window.scrollTo({ top: 0 })
 }
 
@@ -148,6 +152,7 @@ const emptyState = (title, text) => `<strong>${esc(title)}</strong>${text ? `<sp
 function applyGeometry(root) {
   root.querySelectorAll('[data-left]').forEach((el) => (el.style.left = el.dataset.left + '%'))
   root.querySelectorAll('[data-width]').forEach((el) => (el.style.width = el.dataset.width + '%'))
+  root.querySelectorAll('[data-height]').forEach((el) => (el.style.height = el.dataset.height + '%'))
 }
 
 function render() {
@@ -162,6 +167,7 @@ function render() {
   if (state.view === 'overview') renderOverview()
   if (state.view === 'bookings') renderBookings()
   if (state.view === 'fleet') renderFleet()
+  if (state.view === 'analytics') renderAnalytics()
   if (state.view === 'activity') renderActivity()
   if (state.open) fillDrawer()
 }
@@ -331,6 +337,94 @@ function renderFleet() {
   applyGeometry($('view-fleet'))
 }
 
+// ---------- Analytics: visitors to the public site, counted by the server without cookies ----------
+const SECTION_NAMES = { top: 'Opening', marques: 'Marques', showroom: 'Showroom', experience: 'How a rental works', locations: 'Cities', about: 'About', concierge: 'Request a drive' }
+const pct = (n, of) => (of ? Math.round((n / of) * 100) : 0)
+const fmtPct = (n, of) => {
+  if (!of) return '0%'
+  const p = (n / of) * 100
+  return p > 0 && p < 1 ? '<1%' : `${p < 10 && p % 1 ? p.toFixed(1) : Math.round(p)}%`
+}
+function change(now, before, days) {
+  if (!before) return now ? `New in the last ${days} days` : 'No visits yet'
+  const d = Math.round(((now - before) / before) * 100)
+  return d === 0 ? `Same as the ${days} days before` : `${d > 0 ? 'Up' : 'Down'} ${Math.abs(d)}% on the ${days} days before`
+}
+async function loadAnalytics() {
+  const days = state.range
+  try {
+    const data = await api(`/api/admin/analytics?days=${days}`)
+    if (days !== state.range) return
+    state.analytics = data
+    renderAnalytics()
+  } catch (err) {
+    toast(err.message, { error: true })
+  }
+}
+// One labelled bar: name, track, number. `width` is 0–100; `title` reads out the whole line.
+const meter = (name, width, n, title, cls = 'v') =>
+  `<div class="bar"><span>${esc(name)}</span><span class="track" role="img" aria-label="${esc(title)}"><i class="${cls}" data-width="${width}"></i></span><span class="n">${esc(n)}</span></div>`
+function renderAnalytics() {
+  document.querySelectorAll('#range-tabs [data-range]').forEach((b) => b.setAttribute('aria-selected', String(Number(b.dataset.range) === state.range)))
+  const a = state.analytics
+  if (!a || a.days !== state.range) {
+    $('a-stats').innerHTML = Array.from({ length: 4 }, () => '<div class="stat"><span class="label">&nbsp;</span><span class="value">–</span><span class="foot">&nbsp;</span></div>').join('')
+    return
+  }
+  const { totals: t, previous: p, days } = a
+  $('a-live').textContent = a.live ? `${plural(a.live, 'visitor')} on the site now` : 'Nobody on the site right now'
+  $('a-live').classList.toggle('on', a.live > 0)
+  const stat = (label, value, foot) => `<div class="stat"><span class="label">${label}</span><span class="value">${value}</span><span class="foot">${esc(foot)}</span></div>`
+  $('a-stats').innerHTML = [
+    stat('Visitors', t.visitors.toLocaleString(), change(t.visitors, p.visitors, days)),
+    stat('Page views', t.pageviews.toLocaleString(), t.visitors ? `${(t.pageviews / t.visitors).toFixed(1)} per visitor` : 'Each time the site is opened'),
+    stat('Bookings sent', t.bookings.toLocaleString(), change(t.bookings, p.bookings, days)),
+    stat('Conversion', fmtPct(t.bookings, t.visitors), 'Visitors who sent a booking'),
+  ].join('')
+  $('a-range').textContent = `${fmtDay(a.from)} – ${fmtDay(a.to)}`
+
+  // Visitors per day as columns; a few dates underneath, no gridlines.
+  const max = Math.max(1, ...a.daily.map((d) => d.visitors))
+  const every = days <= 7 ? 1 : days <= 30 ? 7 : 15
+  const labels = a.daily
+    .map((d, i) => ((a.daily.length - 1 - i) % every === 0 ? `<span data-left="${((i + 0.5) / a.daily.length) * 100}">${esc(i === a.daily.length - 1 ? 'Today' : fmtDay(d.day))}</span>` : ''))
+    .join('')
+  $('a-chart').innerHTML = t.visitors
+    ? `<div class="cols" role="img" aria-label="Visitors per day, ${plural(t.visitors, 'visitor')} in all">${a.daily
+        .map(
+          (d) =>
+            `<span class="col" title="${esc(fmtDay(d.day, { weekday: 'short' }))}: ${plural(d.visitors, 'visitor')}, ${plural(d.pageviews, 'page view')}"><i data-height="${Math.max((d.visitors / max) * 100, d.visitors ? 3 : 0)}"></i></span>`,
+        )
+        .join('')}</div><div class="axis">${labels}</div><p class="peak">Busiest day ${esc(max.toLocaleString())}</p>`
+    : `<div class="empty">${emptyState('No visitors yet', 'Visits appear here a moment after someone opens the website.')}</div>`
+
+  const visits = Math.max(1, t.visitors)
+  const sourceTotal = a.sources.reduce((n, s) => n + s.visitors, 0)
+  $('a-sources').innerHTML = a.sources.length
+    ? a.sources.map((s) => meter(s.name, pct(s.visitors, a.sources[0].visitors), fmtPct(s.visitors, sourceTotal), `${s.name}: ${plural(s.visitors, 'visitor')}`)).join('')
+    : `<div class="empty">${emptyState('Nothing yet', 'Search engines, social apps and links appear here.')}</div>`
+  const deviceTotal = a.devices.reduce((n, d) => n + d.visitors, 0)
+  $('a-devices').textContent = a.devices.map((d) => `${d.name} ${fmtPct(d.visitors, deviceTotal)}`).join(' · ')
+
+  $('a-funnel').innerHTML = a.funnel.map((f) => meter(f.step, pct(f.visitors, visits), fmtPct(f.visitors, t.visitors), `${f.step}: ${plural(f.visitors, 'visitor')}`)).join('')
+  $('a-sections').innerHTML = a.sections.map((x) => meter(SECTION_NAMES[x.id] ?? x.id, pct(x.visitors, visits), fmtPct(x.visitors, t.visitors), `${SECTION_NAMES[x.id] ?? x.id}: ${plural(x.visitors, 'visitor')}`)).join('')
+  const carMax = Math.max(1, ...a.cars.map((c) => c.views))
+  $('a-cars').innerHTML = a.cars
+    .map(
+      (c) =>
+        `<div class="bar"><span>${esc(c.name)}</span><span class="track" role="img" aria-label="${esc(c.name)}: opened by ${plural(c.views, 'visitor')}, ${plural(c.bookings, 'booking')}"><i class="v" data-width="${(c.views / carMax) * 100}"></i></span><span class="n">${c.views}${c.bookings ? `<b>${c.bookings}</b>` : ''}</span></div>`,
+    )
+    .join('')
+  applyGeometry($('view-analytics'))
+}
+$('range-tabs').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-range]')
+  if (!b || Number(b.dataset.range) === state.range) return
+  state.range = Number(b.dataset.range)
+  renderAnalytics()
+  loadAnalytics()
+})
+
 // ---------- Activity: what staff did, from the server's log ----------
 const EVENTS = {
   login_ok: 'Signed in',
@@ -470,6 +564,7 @@ const COMMANDS = [
   { label: 'Go to Bookings', hint: 'G B', run: () => (location.hash = '#bookings') },
   { label: 'Show pending requests', run: () => (location.hash = '#bookings?status=pending') },
   { label: 'Go to Fleet', hint: 'G F', run: () => (location.hash = '#fleet') },
+  { label: 'Go to Analytics', hint: 'G V', run: () => (location.hash = '#analytics') },
   { label: 'Go to Activity', hint: 'G A', run: () => (location.hash = '#activity') },
   { label: 'Refresh', hint: 'R', run: () => load().then(() => toast('Up to date')) },
   { label: 'Export bookings to CSV', run: () => $('export').click() },
@@ -490,7 +585,7 @@ function renderPalette() {
   const q = $('p-input').value.trim().toLowerCase()
   const bookings = (q ? state.bookings.filter((b) => matches(b, q)) : state.bookings.filter((b) => b.status === 'pending')).slice(0, 7)
   const commands = COMMANDS.filter((c) => !q || c.label.toLowerCase().includes(q))
-  paletteItems = [...bookings.map((b) => ({ booking: b, run: () => (location.hash = `#${state.view === 'overview' || state.view === 'activity' ? 'bookings' : state.view}/${b.reference}`) })), ...commands]
+  paletteItems = [...bookings.map((b) => ({ booking: b, run: () => (location.hash = `#${['bookings', 'fleet'].includes(state.view) ? state.view : 'bookings'}/${b.reference}`) })), ...commands]
   paletteIndex = Math.min(paletteIndex, Math.max(0, paletteItems.length - 1))
   if (!q) paletteIndex = 0
   let i = 0
@@ -707,7 +802,7 @@ document.addEventListener('keydown', (e) => {
   const key = e.key.toLowerCase()
   if (chord === 'g') {
     chord = null
-    const to = { o: 'overview', b: 'bookings', f: 'fleet', a: 'activity' }[key]
+    const to = { o: 'overview', b: 'bookings', f: 'fleet', v: 'analytics', a: 'activity' }[key]
     if (to) location.hash = '#' + to
     return
   }

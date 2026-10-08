@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { ChevronDown } from 'lucide-react'
 import { useEffect, useId, useState, type FormEvent, type ReactNode, type Ref } from 'react'
 import { createPortal } from 'react-dom'
+import { trackBookingStart } from '../analytics'
 import { checkAvailability, createBooking } from '../api'
 import { duration } from '../animations/tokens'
 import { fadeUp, maskLine, stagger } from '../animations/variants'
@@ -116,6 +117,8 @@ export function BookingForm({ vehicleId, locationId, onDone, autoFocus, delay = 
         <motion.form
           key="form"
           onSubmit={submit}
+          // The first change to any field counts as starting a booking (analytics).
+          onChangeCapture={trackBookingStart}
           className="flex flex-1 flex-col"
           variants={stagger(0.05, delay)}
           initial="hidden"

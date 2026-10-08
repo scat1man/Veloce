@@ -1,4 +1,5 @@
 import { MotionConfig } from 'motion/react'
+import { startAnalytics } from './analytics'
 import { useEffect, useState } from 'react'
 import { BookingPanel } from './components/BookingPanel'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -30,6 +31,7 @@ export default function App() {
   }, [webgl])
 
   useEffect(() => startSmoothScroll(), [])
+  useEffect(() => startAnalytics(), [])
 
   return (
     // reducedMotion="user": transform & layout animations are dropped for visitors who ask for less motion.

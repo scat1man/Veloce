@@ -52,6 +52,27 @@ export function openDb(dataDir) {
     CREATE INDEX IF NOT EXISTS admin_events_ref ON admin_events (reference);
   `)
 
+  // Visitor analytics (analytics.js): no cookies, no raw IPs. `visitor` is a hash with a salt that
+  // changes daily, so it means "the same browser today" and nothing more. Purged with RETENTION_DAYS.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      at          TEXT    NOT NULL DEFAULT (datetime('now')),
+      day         TEXT    NOT NULL,     -- YYYY-MM-DD (UTC)
+      visitor     TEXT    NOT NULL,     -- 16 hex chars of sha256(daily salt, ip, user agent)
+      kind        TEXT    NOT NULL,     -- pageview | section | car | booking_start | booking
+      name        TEXT,                 -- section id or car id
+      source      TEXT,                 -- pageviews only: Google, Instagram, Direct, ...
+      device      TEXT                  -- Desktop | Phone | Tablet
+    );
+    CREATE INDEX IF NOT EXISTS analytics_day ON analytics_events (day, kind);
+    CREATE INDEX IF NOT EXISTS analytics_visitor ON analytics_events (day, visitor, kind, name);
+    CREATE TABLE IF NOT EXISTS analytics_salts (
+      day         TEXT    PRIMARY KEY,
+      salt        TEXT    NOT NULL
+    );
+  `)
+
   // Older databases may hold mixed-case emails; lookups compare lowercase.
   db.exec('UPDATE bookings SET email = lower(email) WHERE email != lower(email)')
   return db
